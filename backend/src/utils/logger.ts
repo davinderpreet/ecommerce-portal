@@ -13,5 +13,4 @@ export const createLogger = () => {
   return log;
 };
 
-// Export default logger instance
 export default createLogger();
