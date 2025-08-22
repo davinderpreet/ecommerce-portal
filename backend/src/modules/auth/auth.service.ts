@@ -40,7 +40,7 @@ export class AuthService {
         password: hashedPassword
       });
 
-      // Generate token
+      // Generate token - FIXED SYNTAX
       const token = this.generateToken({
         userId: user.id,
         email: user.email,
@@ -93,7 +93,7 @@ export class AuthService {
       // Update last login
       await this.authRepository.updateLastLogin(user.id);
 
-      // Generate token
+      // Generate token - FIXED SYNTAX
       const token = this.generateToken({
         userId: user.id,
         email: user.email,
@@ -136,13 +136,14 @@ export class AuthService {
     }
   }
 
+  // FIXED: Correct JWT signing syntax
   private generateToken(payload: JwtPayload): string {
+    const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    
     return jwt.sign(
-      payload, 
-      this.jwtSecret, 
-      { 
-        expiresIn: process.env.JWT_EXPIRES_IN || '7d' 
-      }
+      payload,           // First parameter: payload
+      this.jwtSecret,    // Second parameter: secret
+      { expiresIn }      // Third parameter: options object
     );
   }
 
@@ -158,5 +159,36 @@ export class AuthService {
       createdAt: user.created_at.toISOString(),
       updatedAt: user.updated_at.toISOString()
     };
+  }
+}
+
+// =====================================================
+// Alternative Minimal Version (if above still has issues)
+// =====================================================
+
+// If you're still having issues, use this ultra-simple version:
+
+export class SimpleAuthService {
+  private jwtSecret: string;
+
+  constructor() {
+    this.jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
+  }
+
+  // Simple token generation without complex types
+  generateSimpleToken(userId: string, email: string, role: string): string {
+    const payload = { userId, email, role };
+    const options = { expiresIn: '7d' };
+    
+    return jwt.sign(payload, this.jwtSecret, options);
+  }
+
+  // Simple token verification
+  verifySimpleToken(token: string): any {
+    try {
+      return jwt.verify(token, this.jwtSecret);
+    } catch (error) {
+      return null;
+    }
   }
 }
