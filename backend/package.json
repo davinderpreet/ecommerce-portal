@@ -11,8 +11,8 @@
     "test:watch": "jest --watch",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
-    "db:migrate": "node scripts/migrate.js",
-    "db:seed": "node scripts/seed.js"
+    "postbuild": "echo 'Build completed successfully'",
+    "prestart": "echo 'Starting production server...'"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -55,13 +55,5 @@
       "!src/**/*.test.ts",
       "!src/**/*.spec.ts"
     ]
-  }
-}
-{
-  "scripts": {
-    "start": "node dist/index.js",
-    "build": "tsc",
-    "postbuild": "echo 'Build completed successfully'",
-    "prestart": "echo 'Starting production server...'"
   }
 }
