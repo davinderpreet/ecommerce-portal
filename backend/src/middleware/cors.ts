@@ -1,6 +1,3 @@
-// =====================================================
-// FILE: backend/src/middleware/cors.ts
-// =====================================================
 import cors from 'cors';
 
 const corsOptions = {
