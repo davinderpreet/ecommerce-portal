@@ -1,0 +1,36 @@
+{
+  "name": "ecommerce-portal",
+  "version": "1.0.0",
+  "description": "High-end multi-channel e-commerce management portal",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "cd backend && npm start",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test",
+    "migrate": "cd backend && npm run migrate",
+    "seed": "cd backend && npm run seed",
+    "setup": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "workspaces": [
+    "backend",
+    "frontend",
+    "shared"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.45.0",
+    "prettier": "^3.0.0"
+  },
+  "keywords": ["ecommerce", "multi-channel", "dashboard", "analytics"],
+  "author": "Your Name",
+  "license": "PRIVATE"
+}
