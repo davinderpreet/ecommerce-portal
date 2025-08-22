@@ -24,12 +24,12 @@ app.use((req, res, next) => {
 });
 
 // =====================================================
-// SHOPIFY API CLIENT
+// SHOPIFY API CLIENT (FIXED)
 // =====================================================
 
 class ShopifyAPIClient {
   constructor() {
-    this.shopDomain = process.env.SHOPIFY_SHOP_DOMAIN; // your-shop.myshopify.com
+    this.shopDomain = process.env.SHOPIFY_SHOP_DOMAIN;
     this.accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
     this.apiVersion = process.env.SHOPIFY_API_VERSION || '2024-01';
     this.baseURL = `https://${this.shopDomain}/admin/api/${this.apiVersion}`;
@@ -71,9 +71,9 @@ class ShopifyAPIClient {
     }
   }
 
-  // Get all products from Shopify
-  async getProducts(limit = 50, page = 1) {
-    const endpoint = `/products.json?limit=${limit}&page=${page}`;
+  // FIXED: Get products without page parameter
+  async getProducts(limit = 50) {
+    const endpoint = `/products.json?limit=${limit}`;
     return await this.makeRequest(endpoint);
   }
 
@@ -90,7 +90,7 @@ class ShopifyAPIClient {
     return await this.makeRequest(endpoint, 'POST', data);
   }
 
-  // Get orders from Shopify
+  // FIXED: Get orders without page parameter
   async getOrders(status = 'any', limit = 50, createdAtMin = null) {
     let endpoint = `/orders.json?status=${status}&limit=${limit}`;
     if (createdAtMin) {
@@ -768,7 +768,7 @@ app.get('/api/channels', async (req, res) => {
 });
 
 // =====================================================
-// SHOPIFY API ENDPOINTS
+// SHOPIFY API ENDPOINTS (FIXED)
 // =====================================================
 
 // Initialize Shopify client
@@ -815,19 +815,20 @@ app.get('/api/shopify/test', authenticateToken, async (req, res) => {
   }
 });
 
-// Get Shopify products (direct from Shopify)
+// FIXED: Get Shopify products (no page parameter)
 app.get('/api/shopify/products', authenticateToken, async (req, res) => {
   try {
-    const { limit = 50, page = 1 } = req.query;
+    const { limit = 50 } = req.query;
     
-    const result = await shopifyClient.getProducts(limit, page);
+    const result = await shopifyClient.getProducts(limit);
     
     if (result.success) {
       res.json({
         success: true,
         data: result.data.products,
         source: 'shopify',
-        apiVersion: shopifyClient.apiVersion
+        apiVersion: shopifyClient.apiVersion,
+        count: result.data.products.length
       });
     } else {
       res.status(400).json({
@@ -1127,5 +1128,5 @@ app.listen(PORT, () => {
   console.log(`📊 Inventory: http://localhost:${PORT}/api/inventory`);
   console.log(`💰 Sales: http://localhost:${PORT}/api/sales/*`);
   console.log(`🔗 Channels: http://localhost:${PORT}/api/channels`);
-  console.log(`🛍️ Shopify: http://localhost:${PORT}/api/shopify/*`);
+  console.log(`🛍️ Shopify: http://localhost:${PORT}/api/shopify/* (FIXED)`);
 });
