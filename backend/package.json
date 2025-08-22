@@ -1,59 +1,17 @@
 {
-  "name": "@ecommerce-portal/backend",
+  "name": "ecommerce-portal-backend",
   "version": "1.0.0",
-  "description": "Backend API server for e-commerce portal",
-  "main": "dist/index.js",
+  "description": "Simple e-commerce portal backend",
+  "main": "server.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
-    "postbuild": "echo 'Build completed successfully'",
-    "prestart": "echo 'Starting production server...'"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "helmet": "^7.0.0",
-    "dotenv": "^16.3.1",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.11.2",
-    "zod": "^3.21.4",
-    "winston": "^3.10.0",
-    "express-rate-limit": "^6.8.1",
-    "axios": "^1.4.0",
-    "uuid": "^9.0.0"
-  },
-  "devDependencies": {
-    "@types/express": "^4.17.17",
-    "@types/cors": "^2.8.13",
-    "@types/bcryptjs": "^2.4.2",
-    "@types/jsonwebtoken": "^9.0.2",
-    "@types/pg": "^8.10.2",
-    "@types/node": "^20.4.5",
-    "@types/uuid": "^9.0.2",
-    "tsx": "^3.12.7",
-    "typescript": "^5.1.6",
-    "jest": "^29.6.2",
-    "@types/jest": "^29.5.3",
-    "ts-jest": "^29.1.1",
-    "@typescript-eslint/eslint-plugin": "^6.2.1",
-    "@typescript-eslint/parser": "^6.2.1",
-    "eslint": "^8.45.0"
-  },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "roots": ["<rootDir>/src"],
-    "testMatch": ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
-    "collectCoverageFrom": [
-      "src/**/*.ts",
-      "!src/**/*.test.ts",
-      "!src/**/*.spec.ts"
-    ]
+    "dotenv": "^16.3.1"
   }
 }
