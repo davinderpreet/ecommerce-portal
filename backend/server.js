@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
+const axios = require('axios');
 require('dotenv').config();
 
 const app = express();
@@ -21,6 +22,95 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   next();
 });
+
+// =====================================================
+// SHOPIFY API CLIENT
+// =====================================================
+
+class ShopifyAPIClient {
+  constructor() {
+    this.shopDomain = process.env.SHOPIFY_SHOP_DOMAIN; // your-shop.myshopify.com
+    this.accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+    this.apiVersion = process.env.SHOPIFY_API_VERSION || '2024-01';
+    this.baseURL = `https://${this.shopDomain}/admin/api/${this.apiVersion}`;
+  }
+
+  // Make authenticated request to Shopify
+  async makeRequest(endpoint, method = 'GET', data = null) {
+    try {
+      if (!this.shopDomain || !this.accessToken) {
+        throw new Error('Shopify configuration missing');
+      }
+
+      const config = {
+        method,
+        url: `${this.baseURL}${endpoint}`,
+        headers: {
+          'X-Shopify-Access-Token': this.accessToken,
+          'Content-Type': 'application/json'
+        }
+      };
+
+      if (data && (method === 'POST' || method === 'PUT')) {
+        config.data = data;
+      }
+
+      const response = await axios(config);
+      return {
+        success: true,
+        data: response.data,
+        status: response.status
+      };
+    } catch (error) {
+      console.error('Shopify API Error:', error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data || error.message,
+        status: error.response?.status || 500
+      };
+    }
+  }
+
+  // Get all products from Shopify
+  async getProducts(limit = 50, page = 1) {
+    const endpoint = `/products.json?limit=${limit}&page=${page}`;
+    return await this.makeRequest(endpoint);
+  }
+
+  // Get single product from Shopify
+  async getProduct(productId) {
+    const endpoint = `/products/${productId}.json`;
+    return await this.makeRequest(endpoint);
+  }
+
+  // Create product in Shopify
+  async createProduct(productData) {
+    const endpoint = '/products.json';
+    const data = { product: productData };
+    return await this.makeRequest(endpoint, 'POST', data);
+  }
+
+  // Get orders from Shopify
+  async getOrders(status = 'any', limit = 50, createdAtMin = null) {
+    let endpoint = `/orders.json?status=${status}&limit=${limit}`;
+    if (createdAtMin) {
+      endpoint += `&created_at_min=${createdAtMin}`;
+    }
+    return await this.makeRequest(endpoint);
+  }
+
+  // Get shop information
+  async getShopInfo() {
+    const endpoint = '/shop.json';
+    return await this.makeRequest(endpoint);
+  }
+
+  // Get locations (warehouses/stores)
+  async getLocations() {
+    const endpoint = '/locations.json';
+    return await this.makeRequest(endpoint);
+  }
+}
 
 // =====================================================
 // AUTHENTICATION MIDDLEWARE
@@ -504,99 +594,6 @@ app.get('/api/inventory', async (req, res) => {
   }
 });
 
-// Update inventory quantity
-app.put('/api/inventory/:productId/:channelId', authenticateToken, async (req, res) => {
-  try {
-    const { productId, channelId } = req.params;
-    const { quantity, notes = 'Manual adjustment' } = req.body;
-    
-    if (quantity === undefined || quantity < 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Valid quantity is required'
-      });
-    }
-    
-    // Get current inventory
-    const currentResult = await pool.query(
-      'SELECT * FROM inventory WHERE product_id = $1 AND channel_id = $2',
-      [productId, channelId]
-    );
-    
-    if (currentResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Inventory record not found'
-      });
-    }
-    
-    const currentInventory = currentResult.rows[0];
-    const previousQuantity = currentInventory.quantity;
-    
-    // Update inventory
-    const updateResult = await pool.query(
-      'UPDATE inventory SET quantity = $1, last_updated = NOW() WHERE product_id = $2 AND channel_id = $3 RETURNING *',
-      [quantity, productId, channelId]
-    );
-    
-    // Log inventory movement
-    await pool.query(
-      `INSERT INTO inventory_movements 
-       (product_id, channel_id, movement_type, quantity_change, previous_quantity, new_quantity, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [productId, channelId, 'adjustment', quantity - previousQuantity, previousQuantity, quantity, notes]
-    );
-    
-    res.json({
-      success: true,
-      message: 'Inventory updated successfully',
-      data: updateResult.rows[0]
-    });
-    
-  } catch (error) {
-    console.error('Update inventory error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update inventory'
-    });
-  }
-});
-
-// Get inventory movements (history)
-app.get('/api/inventory/movements/:productId', async (req, res) => {
-  try {
-    const { productId } = req.params;
-    const { limit = 50 } = req.query;
-    
-    const result = await pool.query(
-      `SELECT 
-         im.*,
-         c.name as channel_name,
-         p.name as product_name,
-         p.sku
-       FROM inventory_movements im
-       JOIN channels c ON im.channel_id = c.id
-       JOIN products p ON im.product_id = p.id
-       WHERE im.product_id = $1
-       ORDER BY im.created_at DESC
-       LIMIT $2`,
-      [productId, limit]
-    );
-    
-    res.json({
-      success: true,
-      data: result.rows
-    });
-    
-  } catch (error) {
-    console.error('Get inventory movements error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch inventory movements'
-    });
-  }
-});
-
 // =====================================================
 // SALES MODULE - ISOLATED SALES DATA PROCESSING
 // =====================================================
@@ -671,58 +668,6 @@ app.get('/api/sales/orders', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch sales orders'
-    });
-  }
-});
-
-// Get single order with items
-app.get('/api/sales/orders/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    // Get order details
-    const orderResult = await pool.query(
-      `SELECT 
-         so.*,
-         c.name as channel_name
-       FROM sales_orders so
-       JOIN channels c ON so.channel_id = c.id
-       WHERE so.id = $1`,
-      [id]
-    );
-    
-    if (orderResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found'
-      });
-    }
-    
-    // Get order items
-    const itemsResult = await pool.query(
-      `SELECT 
-         oi.*,
-         p.name as product_name
-       FROM order_items oi
-       LEFT JOIN products p ON oi.product_id = p.id
-       WHERE oi.order_id = $1
-       ORDER BY oi.created_at`,
-      [id]
-    );
-    
-    const order = orderResult.rows[0];
-    order.items = itemsResult.rows;
-    
-    res.json({
-      success: true,
-      data: order
-    });
-    
-  } catch (error) {
-    console.error('Get order error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch order'
     });
   }
 });
@@ -822,62 +767,336 @@ app.get('/api/channels', async (req, res) => {
   }
 });
 
-// Update channel status
-app.put('/api/channels/:id/status', authenticateToken, async (req, res) => {
+// =====================================================
+// SHOPIFY API ENDPOINTS
+// =====================================================
+
+// Initialize Shopify client
+const shopifyClient = new ShopifyAPIClient();
+
+// Test Shopify connection
+app.get('/api/shopify/test', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { isActive, syncStatus } = req.body;
-    
-    const updates = [];
-    const values = [];
-    let paramCount = 0;
-    
-    if (isActive !== undefined) {
-      paramCount++;
-      updates.push(`is_active = $${paramCount}`);
-      values.push(isActive);
-    }
-    
-    if (syncStatus) {
-      paramCount++;
-      updates.push(`sync_status = $${paramCount}`);
-      values.push(syncStatus);
-    }
-    
-    if (updates.length === 0) {
+    if (!process.env.SHOPIFY_SHOP_DOMAIN || !process.env.SHOPIFY_ACCESS_TOKEN) {
       return res.status(400).json({
         success: false,
-        message: 'No updates provided'
+        message: 'Shopify configuration missing',
+        required: {
+          SHOPIFY_SHOP_DOMAIN: 'your-shop.myshopify.com',
+          SHOPIFY_ACCESS_TOKEN: 'your-access-token',
+          SHOPIFY_API_VERSION: '2024-01 (optional)'
+        }
       });
     }
+
+    const result = await shopifyClient.getShopInfo();
     
-    paramCount++;
-    values.push(id);
-    
-    const result = await pool.query(
-      `UPDATE channels SET ${updates.join(', ')}, updated_at = NOW() 
-       WHERE id = $${paramCount} RETURNING *`,
-      values
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Shopify connection successful',
+        shop: result.data.shop,
+        apiVersion: shopifyClient.apiVersion
+      });
+    } else {
+      res.status(400).json({
         success: false,
-        message: 'Channel not found'
+        message: 'Failed to connect to Shopify',
+        error: result.error
       });
     }
-    
-    res.json({
-      success: true,
-      message: 'Channel updated successfully',
-      data: result.rows[0]
-    });
-    
   } catch (error) {
-    console.error('Update channel error:', error);
+    console.error('Shopify test error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update channel'
+      message: 'Shopify test failed',
+      error: error.message
+    });
+  }
+});
+
+// Get Shopify products (direct from Shopify)
+app.get('/api/shopify/products', authenticateToken, async (req, res) => {
+  try {
+    const { limit = 50, page = 1 } = req.query;
+    
+    const result = await shopifyClient.getProducts(limit, page);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        data: result.data.products,
+        source: 'shopify',
+        apiVersion: shopifyClient.apiVersion
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Failed to fetch Shopify products',
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Get Shopify products error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch Shopify products',
+      error: error.message
+    });
+  }
+});
+
+// Sync products from Shopify to our database
+app.post('/api/shopify/sync/products', authenticateToken, async (req, res) => {
+  try {
+    const { limit = 50 } = req.body;
+    
+    // Get products from Shopify
+    const shopifyResult = await shopifyClient.getProducts(limit);
+    
+    if (!shopifyResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to fetch products from Shopify',
+        error: shopifyResult.error
+      });
+    }
+
+    const shopifyProducts = shopifyResult.data.products;
+    let syncedCount = 0;
+    let errors = [];
+
+    // Get Shopify channel ID
+    const channelResult = await pool.query(
+      "SELECT id FROM channels WHERE channel_type = 'shopify' LIMIT 1"
+    );
+    
+    if (channelResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Shopify channel not found in database'
+      });
+    }
+    
+    const shopifyChannelId = channelResult.rows[0].id;
+
+    // Process each Shopify product
+    for (const shopifyProduct of shopifyProducts) {
+      try {
+        // Check if product already exists
+        const existingProduct = await pool.query(
+          'SELECT id FROM products WHERE sku = $1',
+          [shopifyProduct.handle || `shopify-${shopifyProduct.id}`]
+        );
+
+        let productId;
+
+        if (existingProduct.rows.length === 0) {
+          // Create new product
+          const productResult = await pool.query(
+            `INSERT INTO products 
+             (sku, name, description, brand, category, base_price, cost_price, weight) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+             RETURNING id`,
+            [
+              shopifyProduct.handle || `shopify-${shopifyProduct.id}`,
+              shopifyProduct.title,
+              shopifyProduct.body_html?.replace(/<[^>]*>/g, '') || '',
+              shopifyProduct.vendor || 'Unknown',
+              shopifyProduct.product_type || 'General',
+              shopifyProduct.variants?.[0]?.price || 0,
+              shopifyProduct.variants?.[0]?.compare_at_price || 0,
+              shopifyProduct.variants?.[0]?.weight || null
+            ]
+          );
+          productId = productResult.rows[0].id;
+        } else {
+          productId = existingProduct.rows[0].id;
+        }
+
+        // Create or update channel product mapping
+        await pool.query(
+          `INSERT INTO channel_products 
+           (product_id, channel_id, channel_sku, channel_product_id, channel_name, channel_price, sync_status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (product_id, channel_id) 
+           DO UPDATE SET 
+             channel_sku = $3,
+             channel_product_id = $4,
+             channel_name = $5,
+             channel_price = $6,
+             sync_status = $7,
+             last_synced = NOW()`,
+          [
+            productId,
+            shopifyChannelId,
+            shopifyProduct.handle,
+            shopifyProduct.id.toString(),
+            shopifyProduct.title,
+            shopifyProduct.variants?.[0]?.price || 0,
+            'completed'
+          ]
+        );
+
+        syncedCount++;
+      } catch (error) {
+        console.error(`Error syncing product ${shopifyProduct.id}:`, error);
+        errors.push({
+          productId: shopifyProduct.id,
+          error: error.message
+        });
+      }
+    }
+
+    // Update channel sync status
+    await pool.query(
+      "UPDATE channels SET sync_status = 'completed', last_sync = NOW() WHERE channel_type = 'shopify'"
+    );
+
+    res.json({
+      success: true,
+      message: `Synced ${syncedCount} products from Shopify`,
+      data: {
+        syncedCount,
+        totalProducts: shopifyProducts.length,
+        errors: errors.length > 0 ? errors : null
+      }
+    });
+
+  } catch (error) {
+    console.error('Shopify product sync error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to sync products from Shopify',
+      error: error.message
+    });
+  }
+});
+
+// Push product to Shopify
+app.post('/api/shopify/products', authenticateToken, async (req, res) => {
+  try {
+    const { productId } = req.body;
+    
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product ID is required'
+      });
+    }
+
+    // Get product from our database
+    const productResult = await pool.query(
+      'SELECT * FROM products WHERE id = $1',
+      [productId]
+    );
+
+    if (productResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    const product = productResult.rows[0];
+
+    // Prepare Shopify product data
+    const shopifyProductData = {
+      title: product.name,
+      body_html: product.description || '',
+      vendor: product.brand || 'Unknown',
+      product_type: product.category || 'General',
+      handle: product.sku.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+      variants: [{
+        price: product.base_price.toString(),
+        compare_at_price: product.cost_price ? product.cost_price.toString() : null,
+        sku: product.sku,
+        weight: product.weight || 0,
+        weight_unit: 'kg',
+        inventory_management: 'shopify',
+        inventory_policy: 'deny'
+      }]
+    };
+
+    // Create product in Shopify
+    const result = await shopifyClient.createProduct(shopifyProductData);
+
+    if (result.success) {
+      // Update channel_products mapping
+      const channelResult = await pool.query(
+        "SELECT id FROM channels WHERE channel_type = 'shopify' LIMIT 1"
+      );
+      
+      if (channelResult.rows.length > 0) {
+        const shopifyChannelId = channelResult.rows[0].id;
+        
+        await pool.query(
+          `INSERT INTO channel_products 
+           (product_id, channel_id, channel_sku, channel_product_id, channel_name, channel_price, sync_status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (product_id, channel_id) 
+           DO UPDATE SET 
+             channel_product_id = $4,
+             sync_status = $7,
+             last_synced = NOW()`,
+          [
+            productId,
+            shopifyChannelId,
+            product.sku,
+            result.data.product.id.toString(),
+            result.data.product.title,
+            result.data.product.variants[0].price,
+            'completed'
+          ]
+        );
+      }
+
+      res.json({
+        success: true,
+        message: 'Product created in Shopify successfully',
+        data: result.data.product
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Failed to create product in Shopify',
+        error: result.error
+      });
+    }
+
+  } catch (error) {
+    console.error('Create Shopify product error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create product in Shopify',
+      error: error.message
+    });
+  }
+});
+
+// Get Shopify store locations
+app.get('/api/shopify/locations', authenticateToken, async (req, res) => {
+  try {
+    const result = await shopifyClient.getLocations();
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        data: result.data.locations
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Failed to fetch Shopify locations',
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Get Shopify locations error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch Shopify locations',
+      error: error.message
     });
   }
 });
@@ -908,4 +1127,5 @@ app.listen(PORT, () => {
   console.log(`📊 Inventory: http://localhost:${PORT}/api/inventory`);
   console.log(`💰 Sales: http://localhost:${PORT}/api/sales/*`);
   console.log(`🔗 Channels: http://localhost:${PORT}/api/channels`);
+  console.log(`🛍️ Shopify: http://localhost:${PORT}/api/shopify/*`);
 });
