@@ -1,6 +1,3 @@
-// =====================================================
-// FILE: backend/src/middleware/rateLimiter.ts
-// =====================================================
 import rateLimit from 'express-rate-limit';
 
 // General API rate limiter
