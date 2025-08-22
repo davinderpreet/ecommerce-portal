@@ -50,4 +50,6 @@ export interface JwtPayload {
   userId: string;
   email: string;
   role: string;
+  iat?: number;  // Add optional JWT standard fields
+  exp?: number;
 }
