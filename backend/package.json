@@ -8,9 +8,11 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "jest",
-    "migrate": "npx prisma migrate dev",
-    "seed": "npx prisma db seed",
-    "studio": "npx prisma studio"
+    "test:watch": "jest --watch",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "db:migrate": "node scripts/migrate.js",
+    "db:seed": "node scripts/seed.js"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -19,23 +21,39 @@
     "dotenv": "^16.3.1",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
-    "prisma": "^5.2.0",
-    "@prisma/client": "^5.2.0",
+    "pg": "^8.11.2",
     "zod": "^3.21.4",
     "winston": "^3.10.0",
-    "redis": "^4.6.7",
-    "bull": "^4.11.3",
-    "axios": "^1.4.0"
+    "express-rate-limit": "^6.8.1",
+    "axios": "^1.4.0",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.17",
     "@types/cors": "^2.8.13",
     "@types/bcryptjs": "^2.4.2",
     "@types/jsonwebtoken": "^9.0.2",
+    "@types/pg": "^8.10.2",
     "@types/node": "^20.4.5",
+    "@types/uuid": "^9.0.2",
     "tsx": "^3.12.7",
     "typescript": "^5.1.6",
     "jest": "^29.6.2",
-    "@types/jest": "^29.5.3"
+    "@types/jest": "^29.5.3",
+    "ts-jest": "^29.1.1",
+    "@typescript-eslint/eslint-plugin": "^6.2.1",
+    "@typescript-eslint/parser": "^6.2.1",
+    "eslint": "^8.45.0"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": ["<rootDir>/src"],
+    "testMatch": ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "!src/**/*.test.ts",
+      "!src/**/*.spec.ts"
+    ]
   }
 }
