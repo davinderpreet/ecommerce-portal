@@ -2058,6 +2058,14 @@ app.use('*', (req, res) => {
 // SERVE REACT FRONTEND
 // =====================================================
 
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve M15 Dashboard at /dashboard
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/dashboard.html'));
+});
+
 // Serve React frontend build files
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
