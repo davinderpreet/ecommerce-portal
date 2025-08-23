@@ -39,18 +39,17 @@ class DataQualityMonitor {
 
   async createMonitoringTables() {
     const createTablesQuery = `
-      -- Data quality monitoring dashboard
+      -- Data quality dashboard metrics
       CREATE TABLE IF NOT EXISTS data_quality_dashboard (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         metric_name VARCHAR(255) NOT NULL,
         metric_category VARCHAR(100) NOT NULL,
-        current_value DECIMAL(10,4),
-        previous_value DECIMAL(10,4),
-        threshold_critical DECIMAL(10,4),
-        threshold_warning DECIMAL(10,4),
-        status VARCHAR(50) DEFAULT 'healthy',
-        trend VARCHAR(20) DEFAULT 'stable',
+        current_value DECIMAL(10,2),
+        threshold_critical DECIMAL(5,2),
+        threshold_warning DECIMAL(5,2),
+        status VARCHAR(50) DEFAULT 'normal',
         last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(metric_name, metric_category)
       );
 
@@ -86,7 +85,8 @@ class DataQualityMonitor {
         critical_errors INTEGER,
         warnings INTEGER,
         improvement_suggestions JSONB,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(trend_date, entity_type)
       );
 
       -- Data quality rules monitoring
