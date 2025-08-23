@@ -1411,6 +1411,160 @@ app.get('/api/sales/analytics', async (req, res) => {
 });
 
 // =====================================================
+// M11 SALES REPORTING API ENDPOINTS
+// =====================================================
+
+// Sales Summary Report
+app.get('/api/reports/sales/summary', authenticateToken, async (req, res) => {
+  try {
+    const { startDate, endDate, channel } = req.query;
+    const result = await salesReportingService.getSalesSummary(startDate, endDate, channel);
+    res.json(result);
+  } catch (error) {
+    console.error('Sales summary error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch sales summary'
+    });
+  }
+});
+
+// Channel Performance Report
+app.get('/api/reports/sales/channels', authenticateToken, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const result = await salesReportingService.getChannelPerformance(startDate, endDate);
+    res.json(result);
+  } catch (error) {
+    console.error('Channel performance error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch channel performance'
+    });
+  }
+});
+
+// Top Products Report
+app.get('/api/reports/sales/products/top', authenticateToken, async (req, res) => {
+  try {
+    const { startDate, endDate, limit = 10 } = req.query;
+    const result = await salesReportingService.getTopProducts(startDate, endDate, parseInt(limit));
+    res.json(result);
+  } catch (error) {
+    console.error('Top products error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch top products'
+    });
+  }
+});
+
+// Sales Trends Report
+app.get('/api/reports/sales/trends', authenticateToken, async (req, res) => {
+  try {
+    const { startDate, endDate, granularity = 'daily' } = req.query;
+    const result = await salesReportingService.getSalesTrends(startDate, endDate, granularity);
+    res.json(result);
+  } catch (error) {
+    console.error('Sales trends error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch sales trends'
+    });
+  }
+});
+
+// Customer Segmentation Report
+app.get('/api/reports/sales/customers/segmentation', authenticateToken, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const result = await salesReportingService.getCustomerSegmentation(startDate, endDate);
+    res.json(result);
+  } catch (error) {
+    console.error('Customer segmentation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch customer segmentation'
+    });
+  }
+});
+
+// Comprehensive Report Generation
+app.post('/api/reports/generate/comprehensive', authenticateToken, async (req, res) => {
+  try {
+    const { startDate, endDate, includeCharts = false } = req.body;
+    const result = await reportGeneratorService.generateComprehensiveReport(startDate, endDate, includeCharts);
+    res.json(result);
+  } catch (error) {
+    console.error('Comprehensive report error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate comprehensive report'
+    });
+  }
+});
+
+// Template-based Report Generation
+app.post('/api/reports/generate/:templateName', authenticateToken, async (req, res) => {
+  try {
+    const { templateName } = req.params;
+    const { parameters = {} } = req.body;
+    const result = await reportGeneratorService.generateReportFromTemplate(templateName, parameters);
+    res.json(result);
+  } catch (error) {
+    console.error('Template report error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate template report'
+    });
+  }
+});
+
+// Get Available Report Templates
+app.get('/api/reports/templates', authenticateToken, async (req, res) => {
+  try {
+    const result = await reportGeneratorService.getAvailableTemplates();
+    res.json(result);
+  } catch (error) {
+    console.error('Templates error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch report templates'
+    });
+  }
+});
+
+// Get Report Generation History
+app.get('/api/reports/history', authenticateToken, async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    const result = await reportGeneratorService.getReportHistory(parseInt(limit), parseInt(offset));
+    res.json(result);
+  } catch (error) {
+    console.error('Report history error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch report history'
+    });
+  }
+});
+
+// Export Report Data
+app.post('/api/reports/export', authenticateToken, async (req, res) => {
+  try {
+    const { reportType, format = 'json', parameters = {} } = req.body;
+    const result = await reportGeneratorService.exportReportData(reportType, format, parameters);
+    res.json(result);
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export report data'
+    });
+  }
+});
+
+// =====================================================
 // CATCH ALL ROUTES
 // =====================================================
 
