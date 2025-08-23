@@ -489,6 +489,280 @@ app.get('/api/bestbuy/test', authenticateToken, async (req, res) => {
 });
 
 // =====================================================
+// DATA SYNC SERVICES - MILESTONE 8
+// =====================================================
+
+const SyncService = require('./services/syncService');
+const DataMapper = require('./services/dataMapper');
+const WebhookHandler = require('./services/webhookHandler');
+
+// Initialize sync service
+const syncService = new SyncService();
+const dataMapper = new DataMapper();
+const webhookHandler = new WebhookHandler(syncService, dataMapper);
+
+// Initialize sync service on startup
+syncService.initialize().then(() => {
+  console.log('✅ Sync Service initialized');
+  // Start automatic sync scheduler (every 15 minutes)
+  syncService.startScheduler(15);
+}).catch(error => {
+  console.error('❌ Failed to initialize Sync Service:', error);
+});
+
+// Manual sync trigger endpoint
+app.post('/api/sync/trigger', authenticateToken, async (req, res) => {
+  try {
+    const { channelId, syncType, priority = 5 } = req.body;
+
+    if (!channelId || !syncType) {
+      return res.status(400).json({
+        success: false,
+        message: 'channelId and syncType are required'
+      });
+    }
+
+    const jobId = await syncService.addSyncJob(channelId, syncType, {}, priority);
+
+    res.json({
+      success: true,
+      message: 'Sync job queued successfully',
+      jobId: jobId
+    });
+
+  } catch (error) {
+    console.error('Sync trigger error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to trigger sync',
+      error: error.message
+    });
+  }
+});
+
+// Get sync status and statistics
+app.get('/api/sync/status', authenticateToken, async (req, res) => {
+  try {
+    const stats = syncService.getSyncStats();
+    const recentLogs = await syncService.getSyncLogs(20);
+
+    res.json({
+      success: true,
+      stats: stats,
+      recentLogs: recentLogs,
+      isProcessing: syncService.isProcessing
+    });
+
+  } catch (error) {
+    console.error('Sync status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get sync status',
+      error: error.message
+    });
+  }
+});
+
+// Bulk sync all channels
+app.post('/api/sync/bulk', authenticateToken, async (req, res) => {
+  try {
+    const { syncTypes = ['products', 'orders', 'inventory'] } = req.body;
+
+    // Get all active channels
+    const channelsResult = await pool.query(
+      'SELECT id, name FROM channels WHERE is_active = true'
+    );
+
+    const channels = channelsResult.rows;
+    const queuedJobs = [];
+
+    // Queue sync jobs for all channels and types
+    for (const channel of channels) {
+      for (const syncType of syncTypes) {
+        const jobId = await syncService.addSyncJob(channel.id, syncType, {}, 7); // High priority
+        queuedJobs.push({
+          jobId,
+          channel: channel.name,
+          syncType
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Queued ${queuedJobs.length} sync jobs`,
+      jobs: queuedJobs
+    });
+
+  } catch (error) {
+    console.error('Bulk sync error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to queue bulk sync',
+      error: error.message
+    });
+  }
+});
+
+// Data mapping test endpoint
+app.post('/api/sync/map-test', authenticateToken, async (req, res) => {
+  try {
+    const { channelName, dataType, rawData } = req.body;
+
+    if (!channelName || !dataType || !rawData) {
+      return res.status(400).json({
+        success: false,
+        message: 'channelName, dataType, and rawData are required'
+      });
+    }
+
+    const mappedData = dataMapper.mapData(channelName, dataType, rawData);
+    dataMapper.validateMappedData(dataType, mappedData);
+
+    res.json({
+      success: true,
+      message: 'Data mapping successful',
+      originalData: rawData,
+      mappedData: mappedData
+    });
+
+  } catch (error) {
+    console.error('Data mapping test error:', error);
+    res.status(400).json({
+      success: false,
+      message: 'Data mapping failed',
+      error: error.message
+    });
+  }
+});
+
+// Sync logs with pagination
+app.get('/api/sync/logs', authenticateToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 50, channelId, syncType, status } = req.query;
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT sl.*, c.name as channel_name
+      FROM sync_logs sl
+      JOIN channels c ON sl.channel_id = c.id
+      WHERE 1=1
+    `;
+    const params = [];
+    let paramCount = 0;
+
+    if (channelId) {
+      params.push(channelId);
+      query += ` AND sl.channel_id = $${++paramCount}`;
+    }
+
+    if (syncType) {
+      params.push(syncType);
+      query += ` AND sl.sync_type = $${++paramCount}`;
+    }
+
+    if (status) {
+      params.push(status);
+      query += ` AND sl.status = $${++paramCount}`;
+    }
+
+    query += ` ORDER BY sl.started_at DESC LIMIT $${++paramCount} OFFSET $${++paramCount}`;
+    params.push(limit, offset);
+
+    const result = await pool.query(query, params);
+
+    // Get total count
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM sync_logs sl
+      JOIN channels c ON sl.channel_id = c.id
+      WHERE 1=1
+    `;
+    const countParams = [];
+    let countParamCount = 0;
+
+    if (channelId) {
+      countParams.push(channelId);
+      countQuery += ` AND sl.channel_id = $${++countParamCount}`;
+    }
+
+    if (syncType) {
+      countParams.push(syncType);
+      countQuery += ` AND sl.sync_type = $${++countParamCount}`;
+    }
+
+    if (status) {
+      countParams.push(status);
+      countQuery += ` AND sl.status = $${++countParamCount}`;
+    }
+
+    const countResult = await pool.query(countQuery, countParams);
+    const total = parseInt(countResult.rows[0].total);
+
+    res.json({
+      success: true,
+      logs: result.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Sync logs error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get sync logs',
+      error: error.message
+    });
+  }
+});
+
+// Webhook endpoints
+app.use('/api/webhooks', webhookHandler.getRouter());
+
+// Webhook status endpoint
+app.get('/api/webhooks/status', authenticateToken, async (req, res) => {
+  try {
+    const stats = webhookHandler.getWebhookStats();
+    
+    res.json({
+      success: true,
+      webhookStats: stats,
+      endpoints: {
+        shopify: {
+          orders_create: '/api/webhooks/shopify/orders/create',
+          orders_update: '/api/webhooks/shopify/orders/update',
+          products_create: '/api/webhooks/shopify/products/create',
+          products_update: '/api/webhooks/shopify/products/update',
+          inventory_update: '/api/webhooks/shopify/inventory/update'
+        },
+        bestbuy: {
+          orders_create: '/api/webhooks/bestbuy/orders/create',
+          orders_update: '/api/webhooks/bestbuy/orders/update',
+          offers_update: '/api/webhooks/bestbuy/offers/update'
+        },
+        amazon: {
+          orders_create: '/api/webhooks/amazon/orders/create',
+          inventory_update: '/api/webhooks/amazon/inventory/update'
+        },
+        test: '/api/webhooks/test'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Webhook status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get webhook status',
+      error: error.message
+    });
+  }
+});
+
+// =====================================================
 // CHANNELS MODULE - FIXED SQL PARAMETERS
 // =====================================================
 
