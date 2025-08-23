@@ -858,67 +858,69 @@ let syncService, dataMapper, webhookHandler, salesProcessor, orderManager;
 let orderLifecycleManager, fulfillmentService, customerNotificationService, orderAnalyticsDashboard;
 
 // Initialize services on startup (with error handling)
-try {
-  syncService = new SyncService();
-  await syncService.initialize();
-  console.log('✅ Sync Service initialized');
-  // Start automatic sync scheduler (every 15 minutes)
-  syncService.startScheduler(15);
-} catch (error) {
-  console.error('❌ Failed to initialize Sync Service:', error.message);
-  console.log('⚠️ Sync Service will retry initialization on first API call');
-}
+(async () => {
+  try {
+    syncService = new SyncService();
+    await syncService.initialize();
+    console.log('✅ Sync Service initialized');
+    // Start automatic sync scheduler (every 15 minutes)
+    syncService.startScheduler(15);
+  } catch (error) {
+    console.error('❌ Failed to initialize Sync Service:', error.message);
+    console.log('⚠️ Sync Service will retry initialization on first API call');
+  }
 
-// Initialize sales processor
-try {
-  salesProcessor = new SalesProcessor();
-  await salesProcessor.initialize();
-  console.log('✅ Sales Processor initialized');
-} catch (error) {
-  console.error('❌ Failed to initialize Sales Processor:', error.message);
-}
+  // Initialize sales processor
+  try {
+    salesProcessor = new SalesProcessor();
+    await salesProcessor.initialize();
+    console.log('✅ Sales Processor initialized');
+  } catch (error) {
+    console.error('❌ Failed to initialize Sales Processor:', error.message);
+  }
 
-// Initialize OrderManager
-try {
-  orderManager = new OrderManager();
-  await orderManager.initialize();
-  console.log('✅ Order Manager initialized');
-} catch (error) {
-  console.error('❌ OrderManager initialization failed:', error.message);
-}
+  // Initialize OrderManager
+  try {
+    orderManager = new OrderManager();
+    await orderManager.initialize();
+    console.log('✅ Order Manager initialized');
+  } catch (error) {
+    console.error('❌ OrderManager initialization failed:', error.message);
+  }
 
-// Initialize M10 services
-try {
-  orderLifecycleManager = new OrderLifecycleManager();
-  await orderLifecycleManager.initialize();
-  console.log('✅ OrderLifecycleManager initialized');
-} catch (error) {
-  console.error('❌ OrderLifecycleManager initialization failed:', error.message);
-}
+  // Initialize M10 services
+  try {
+    orderLifecycleManager = new OrderLifecycleManager();
+    await orderLifecycleManager.initialize();
+    console.log('✅ OrderLifecycleManager initialized');
+  } catch (error) {
+    console.error('❌ OrderLifecycleManager initialization failed:', error.message);
+  }
 
-try {
-  fulfillmentService = new FulfillmentService();
-  await fulfillmentService.initialize();
-  console.log('✅ FulfillmentService initialized');
-} catch (error) {
-  console.error('❌ FulfillmentService initialization failed:', error.message);
-}
+  try {
+    fulfillmentService = new FulfillmentService();
+    await fulfillmentService.initialize();
+    console.log('✅ FulfillmentService initialized');
+  } catch (error) {
+    console.error('❌ FulfillmentService initialization failed:', error.message);
+  }
 
-try {
-  customerNotificationService = new CustomerNotificationService();
-  await customerNotificationService.initialize();
-  console.log('✅ CustomerNotificationService initialized');
-} catch (error) {
-  console.error('❌ CustomerNotificationService initialization failed:', error.message);
-}
+  try {
+    customerNotificationService = new CustomerNotificationService();
+    await customerNotificationService.initialize();
+    console.log('✅ CustomerNotificationService initialized');
+  } catch (error) {
+    console.error('❌ CustomerNotificationService initialization failed:', error.message);
+  }
 
-try {
-  orderAnalyticsDashboard = new OrderAnalyticsDashboard();
-  await orderAnalyticsDashboard.initialize();
-  console.log('✅ OrderAnalyticsDashboard initialized');
-} catch (error) {
-  console.error('❌ OrderAnalyticsDashboard initialization failed:', error.message);
-}
+  try {
+    orderAnalyticsDashboard = new OrderAnalyticsDashboard();
+    await orderAnalyticsDashboard.initialize();
+    console.log('✅ OrderAnalyticsDashboard initialized');
+  } catch (error) {
+    console.error('❌ OrderAnalyticsDashboard initialization failed:', error.message);
+  }
+})();
 
 // Manual sync trigger endpoint
 app.post('/api/sync/trigger', authenticateToken, async (req, res) => {
