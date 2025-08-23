@@ -2,10 +2,10 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "cd frontend && npm install --legacy-peer-deps && npm run build && cd ../backend && npm install"
+    "buildCommand": "echo 'Building frontend...' && cd frontend && npm ci --legacy-peer-deps && npm run build && echo 'Frontend build complete' && ls -la dist/ && cd ../backend && echo 'Installing backend dependencies...' && npm ci && echo 'Build process complete'"
   },
   "deploy": {
-    "startCommand": "cd backend && node server.js",
+    "startCommand": "cd backend && echo 'Starting server...' && ls -la ../frontend/dist/ && node server.js",
     "healthcheckPath": "/api/health",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
