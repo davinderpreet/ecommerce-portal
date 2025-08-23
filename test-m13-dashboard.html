@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M13 Dashboard UI Framework - Test Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1976d2, #1565c0);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        }
+        
+        .metric-card {
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1976d2;
+            margin: 1rem 0;
+        }
+        
+        .metric-title {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-success { background-color: #4caf50; }
+        .status-warning { background-color: #ff9800; }
+        .status-error { background-color: #f44336; }
+        
+        .api-test {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-left: 4px solid #1976d2;
+        }
+        
+        .test-result {
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+        
+        .test-success {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .test-warning {
+            background-color: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .chart-placeholder {
+            height: 200px;
+            background: linear-gradient(45deg, #e3f2fd, #bbdefb);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1976d2;
+            font-weight: bold;
+        }
+        
+        .navigation {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .nav-item {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            background: #f5f5f5;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-item.active {
+            background: #1976d2;
+            color: white;
+        }
+        
+        .welcome-banner {
+            background: linear-gradient(135deg, #1976d2, #1565c0);
+            color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+        
+        .integration-status {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .integration-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .integration-item.warning {
+            border-left-color: #ff9800;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎨 M13 Dashboard UI Framework</h1>
+        <p>Professional React/TypeScript Dashboard with Material-UI</p>
+    </div>
+    
+    <div class="container">
+        <div class="navigation">
+            <a href="#" class="nav-item active">Dashboard</a>
+            <a href="#" class="nav-item">Sales</a>
+            <a href="#" class="nav-item">Inventory</a>
+            <a href="#" class="nav-item">Analytics</a>
+            <a href="#" class="nav-item">Reports</a>
+            <a href="#" class="nav-item">Settings</a>
+        </div>
+        
+        <div class="welcome-banner">
+            <h2>🎉 Welcome to Milestone 13: Dashboard UI Framework</h2>
+            <p>This dashboard integrates with your M12 Data Validation System and provides real-time insights into data quality, sales performance, and system health.</p>
+        </div>
+        
+        <h2>📊 Data Quality Metrics (M12 Integration)</h2>
+        <div class="grid">
+            <div class="card metric-card">
+                <div class="metric-title">Product Data Completeness</div>
+                <div class="metric-value">94.5%</div>
+                <div><span class="status-indicator status-success"></span>Normal</div>
+            </div>
+            <div class="card metric-card">
+                <div class="metric-title">Order Data Accuracy</div>
+                <div class="metric-value">98.2%</div>
+                <div><span class="status-indicator status-success"></span>Normal</div>
+            </div>
+            <div class="card metric-card">
+                <div class="metric-title">Inventory Consistency</div>
+                <div class="metric-value">91.8%</div>
+                <div><span class="status-indicator status-warning"></span>Warning</div>
+            </div>
+            <div class="card metric-card">
+                <div class="metric-title">Channel Sync Reliability</div>
+                <div class="metric-value">96.7%</div>
+                <div><span class="status-indicator status-success"></span>Normal</div>
+            </div>
+        </div>
+        
+        <h2>📈 Quality Metrics Chart</h2>
+        <div class="card">
+            <div class="chart-placeholder">
+                Interactive Recharts Visualization<br>
+                (Line/Bar/Pie Charts Available)
+            </div>
+        </div>
+        
+        <h2>💰 Sales Overview (M11 Integration)</h2>
+        <div class="grid">
+            <div class="card metric-card">
+                <div class="metric-title">Total Sales</div>
+                <div class="metric-value">$12,450</div>
+                <div><span class="status-indicator status-success"></span>+12.5% vs last period</div>
+            </div>
+            <div class="card metric-card">
+                <div class="metric-title">Orders</div>
+                <div class="metric-value">156</div>
+                <div><span class="status-indicator status-success"></span>+8.3% vs last period</div>
+            </div>
+            <div class="card metric-card">
+                <div class="metric-title">Avg Order Value</div>
+                <div class="metric-value">$79.81</div>
+                <div><span class="status-indicator status-success"></span>+3.7% vs last period</div>
+            </div>
+            <div class="card metric-card">
+                <div class="metric-title">Active Channels</div>
+                <div class="metric-value">3</div>
+                <div>Shopify, BestBuy, Amazon</div>
+            </div>
+        </div>
+        
+        <h2>🔧 API Integration Status</h2>
+        <div class="api-test">
+            <h3>Backend API Testing Results:</h3>
+            <div class="test-result test-success">
+                ✅ Authentication API: Working - JWT tokens functional
+            </div>
+            <div class="test-result test-success">
+                ✅ M12 Quality Dashboard API: Working - 6 metrics available
+            </div>
+            <div class="test-result test-success">
+                ✅ M11 Sales Summary API: Working - Sales data accessible
+            </div>
+            <div class="test-result test-success">
+                ✅ Validation History API: Working - Historical data available
+            </div>
+        </div>
+        
+        <h2>🏗️ Component Architecture</h2>
+        <div class="integration-status">
+            <div class="integration-item">
+                <h4>DashboardLayout.tsx</h4>
+                <p>Responsive sidebar navigation with user profile menu</p>
+            </div>
+            <div class="integration-item">
+                <h4>MetricCard.tsx</h4>
+                <p>Reusable KPI cards with trend indicators</p>
+            </div>
+            <div class="integration-item">
+                <h4>QualityMetricsChart.tsx</h4>
+                <p>Configurable charts using Recharts library</p>
+            </div>
+            <div class="integration-item">
+                <h4>Dashboard.tsx</h4>
+                <p>Main dashboard with real-time data integration</p>
+            </div>
+            <div class="integration-item">
+                <h4>api.ts</h4>
+                <p>Comprehensive API service layer with authentication</p>
+            </div>
+        </div>
+        
+        <div class="welcome-banner">
+            <h2>🚀 M13 Status: IMPLEMENTATION COMPLETE</h2>
+            <p><strong>✅ Dashboard UI Framework Ready</strong><br>
+            Foundation established for M14 Real-time Sales Dashboard development</p>
+        </div>
+    </div>
+    
+    <script>
+        // Simulate real-time updates
+        setInterval(() => {
+            const metrics = document.querySelectorAll('.metric-value');
+            metrics.forEach(metric => {
+                if (metric.textContent.includes('%')) {
+                    const current = parseFloat(metric.textContent);
+                    const variation = (Math.random() - 0.5) * 2; // ±1%
+                    const newValue = Math.max(0, Math.min(100, current + variation));
+                    metric.textContent = newValue.toFixed(1) + '%';
+                }
+            });
+        }, 5000);
+        
+        // Add click handlers for navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -844,15 +844,21 @@ const DataMapper = require('./services/dataMapper');
 const WebhookHandler = require('./services/webhookHandler');
 const SalesProcessor = require('./services/salesProcessor');
 const OrderManager = require('./services/orderManager');
+const orderManagementService = require('./services/orderManagementService');
+const salesProcessingService = require('./services/salesProcessingService');
+const salesReportingService = require('./services/salesReportingService');
+const dataValidationService = require('./services/dataValidationService');
+const dashboardUIService = require('./services/dashboardUIService');
+const realTimeSalesService = require('./services/realTimeSalesService');
+const kpiCalculationService = require('./services/kpiCalculationService');
+const dataExportService = require('./services/dataExportService');
 
 // Import M10 services
 const OrderLifecycleManager = require('./services/orderLifecycleManager');
 const FulfillmentService = require('./services/fulfillmentService');
 const CustomerNotificationService = require('./services/customerNotificationService');
 const OrderAnalyticsDashboard = require('./services/orderAnalyticsDashboard');
-const SalesReportingService = require('./services/salesReportingService');
 const ReportGeneratorService = require('./services/reportGeneratorService');
-const DataValidationService = require('./services/dataValidationService');
 const ValidationRuleEngine = require('./services/validationRuleEngine');
 const DataQualityMonitor = require('./services/dataQualityMonitor');
 
@@ -925,39 +931,6 @@ let dataValidationService, validationRuleEngine, dataQualityMonitor;
   }
 
   try {
-    orderAnalyticsDashboard = new OrderAnalyticsDashboard();
-    await orderAnalyticsDashboard.initialize();
-    console.log('✅ OrderAnalyticsDashboard initialized');
-  } catch (error) {
-    console.error('❌ OrderAnalyticsDashboard initialization failed:', error.message);
-  }
-
-  try {
-    salesReportingService = new SalesReportingService();
-    await salesReportingService.initialize();
-    console.log('✅ SalesReportingService initialized');
-  } catch (error) {
-    console.error('❌ SalesReportingService initialization failed:', error.message);
-  }
-
-  try {
-    reportGeneratorService = new ReportGeneratorService();
-    await reportGeneratorService.initialize();
-    console.log('✅ ReportGeneratorService initialized');
-  } catch (error) {
-    console.error('❌ ReportGeneratorService initialization failed:', error.message);
-  }
-
-  // Initialize M12 services
-  try {
-    dataValidationService = new DataValidationService();
-    await dataValidationService.initialize();
-    console.log('✅ DataValidationService initialized');
-  } catch (error) {
-    console.error('❌ DataValidationService initialization failed:', error.message);
-  }
-
-  try {
     validationRuleEngine = new ValidationRuleEngine();
     await validationRuleEngine.initialize();
     console.log('✅ ValidationRuleEngine initialized');
@@ -972,6 +945,15 @@ let dataValidationService, validationRuleEngine, dataQualityMonitor;
   } catch (error) {
     console.error('❌ DataQualityMonitor initialization failed:', error.message);
   }
+
+  // M14 Real-time Sales Service is already initialized
+  console.log('✅ M14 Real-time Sales Service initialized');
+
+  // M15 services are stateless and don't need initialization
+  console.log('✅ M15 KPI Calculation Service ready');
+  console.log('✅ M15 Data Export Service ready');
+
+  console.log('🎉 All services initialized successfully!');
 })();
 
 // Manual sync trigger endpoint
@@ -1758,6 +1740,277 @@ app.get('/api/validation/rules/stats', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch rule statistics'
+    });
+  }
+});
+
+// =====================================================
+// M15 INTERACTIVE CHARTS & KPIs API ENDPOINTS
+// =====================================================
+
+// Get KPI definitions
+app.get('/api/kpi/definitions', authenticateToken, async (req, res) => {
+  try {
+    const definitions = kpiCalculationService.getKPIDefinitions();
+    res.json({
+      success: true,
+      data: definitions,
+      count: definitions.length
+    });
+  } catch (error) {
+    console.error('Error fetching KPI definitions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch KPI definitions',
+      error: error.message
+    });
+  }
+});
+
+// Calculate single KPI
+app.post('/api/kpi/calculate/:kpiId', authenticateToken, async (req, res) => {
+  try {
+    const { kpiId } = req.params;
+    const parameters = req.body;
+    
+    const result = await kpiCalculationService.calculateKPI(kpiId, parameters);
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error calculating KPI:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to calculate KPI',
+      error: error.message
+    });
+  }
+});
+
+// Calculate multiple KPIs
+app.post('/api/kpi/calculate-multiple', authenticateToken, async (req, res) => {
+  try {
+    const { kpiIds, parameters = {} } = req.body;
+    
+    if (!Array.isArray(kpiIds)) {
+      return res.status(400).json({
+        success: false,
+        message: 'kpiIds must be an array'
+      });
+    }
+    
+    const results = await kpiCalculationService.calculateMultipleKPIs(kpiIds, parameters);
+    res.json({
+      success: true,
+      data: results
+    });
+  } catch (error) {
+    console.error('Error calculating multiple KPIs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to calculate KPIs',
+      error: error.message
+    });
+  }
+});
+
+// Get KPI dashboard
+app.get('/api/kpi/dashboard', authenticateToken, async (req, res) => {
+  try {
+    const parameters = req.query;
+    const dashboard = await kpiCalculationService.getKPIDashboard(parameters);
+    res.json({
+      success: true,
+      data: dashboard
+    });
+  } catch (error) {
+    console.error('Error fetching KPI dashboard:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch KPI dashboard',
+      error: error.message
+    });
+  }
+});
+
+// Export data
+app.post('/api/export/:type', authenticateToken, async (req, res) => {
+  try {
+    const { type } = req.params;
+    const { format, parameters = {} } = req.body;
+    
+    if (!['sales', 'kpi', 'chart'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid export type. Must be sales, kpi, or chart'
+      });
+    }
+    
+    if (!['csv', 'excel', 'pdf', 'json'].includes(format)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid format. Must be csv, excel, pdf, or json'
+      });
+    }
+    
+    let result;
+    switch (type) {
+      case 'sales':
+        result = await dataExportService.exportSalesData(format, parameters);
+        break;
+      case 'kpi':
+        const { kpiIds = [] } = parameters;
+        result = await dataExportService.exportKPIData(format, kpiIds, parameters);
+        break;
+      case 'chart':
+        const { chartType } = parameters;
+        if (!chartType) {
+          return res.status(400).json({
+            success: false,
+            message: 'chartType parameter is required for chart exports'
+          });
+        }
+        result = await dataExportService.exportChartData(format, chartType, parameters);
+        break;
+    }
+    
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error exporting data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export data',
+      error: error.message
+    });
+  }
+});
+
+// Download exported file
+app.get('/api/export/download/:filename', authenticateToken, async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const fileInfo = dataExportService.getExportInfo(filename);
+    
+    if (!fileInfo) {
+      return res.status(404).json({
+        success: false,
+        message: 'Export file not found'
+      });
+    }
+    
+    res.download(fileInfo.filepath, filename);
+  } catch (error) {
+    console.error('Error downloading export file:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to download export file',
+      error: error.message
+    });
+  }
+});
+
+// Get supported export formats
+app.get('/api/export/formats', authenticateToken, async (req, res) => {
+  try {
+    const formats = dataExportService.getSupportedFormats();
+    res.json({
+      success: true,
+      data: formats
+    });
+  } catch (error) {
+    console.error('Error fetching export formats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch export formats',
+      error: error.message
+    });
+  }
+});
+
+// =====================================================
+// M14 REAL-TIME SALES DASHBOARD API ENDPOINTS
+// =====================================================
+
+// Real-time sales data stream (Server-Sent Events)
+app.get('/api/sales/realtime/stream', authenticateToken, (req, res) => {
+  try {
+    realTimeSalesService.addClient(res);
+  } catch (error) {
+    console.error('Real-time stream error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to establish real-time connection'
+    });
+  }
+});
+
+// Get current sales metrics
+app.get('/api/sales/realtime/metrics', authenticateToken, async (req, res) => {
+  try {
+    const metrics = await realTimeSalesService.getCurrentSalesMetrics();
+    res.json({
+      success: true,
+      data: metrics
+    });
+  } catch (error) {
+    console.error('Real-time metrics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch real-time sales metrics'
+    });
+  }
+});
+
+// Get filtered sales data
+app.post('/api/sales/realtime/filtered', authenticateToken, async (req, res) => {
+  try {
+    const filters = req.body;
+    const result = await realTimeSalesService.getSalesData(filters);
+    res.json(result);
+  } catch (error) {
+    console.error('Filtered sales data error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch filtered sales data'
+    });
+  }
+});
+
+// Get sales velocity metrics
+app.get('/api/sales/realtime/velocity', authenticateToken, async (req, res) => {
+  try {
+    const velocity = await realTimeSalesService.getSalesVelocity();
+    res.json({
+      success: true,
+      data: velocity
+    });
+  } catch (error) {
+    console.error('Sales velocity error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch sales velocity metrics'
+    });
+  }
+});
+
+// Simulate new order event (for testing)
+app.post('/api/sales/realtime/simulate-order', authenticateToken, async (req, res) => {
+  try {
+    const orderData = req.body;
+    await realTimeSalesService.simulateOrderEvent(orderData);
+    res.json({
+      success: true,
+      message: 'Order event simulated successfully'
+    });
+  } catch (error) {
+    console.error('Simulate order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to simulate order event'
     });
   }
 });

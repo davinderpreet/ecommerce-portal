@@ -4,24 +4,23 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import DashboardLayout from './components/Layout/DashboardLayout';
 import Dashboard from './pages/Dashboard';
+import RealTimeSales from './pages/RealTimeSales';
 
 const theme = createTheme({
   palette: {
-    mode: 'light',
     primary: {
       main: '#1976d2',
+      light: '#42a5f5',
+      dark: '#1565c0',
     },
     secondary: {
       main: '#dc004e',
+      light: '#ff5983',
+      dark: '#9a0036',
     },
-    success: {
-      main: '#2e7d32',
-    },
-    warning: {
-      main: '#ed6c02',
-    },
-    error: {
-      main: '#d32f2f',
+    background: {
+      default: '#f5f5f5',
+      paper: '#ffffff',
     },
   },
   typography: {
@@ -30,26 +29,34 @@ const theme = createTheme({
       fontWeight: 600,
     },
     h5: {
-      fontWeight: 600,
+      fontWeight: 500,
     },
     h6: {
-      fontWeight: 600,
+      fontWeight: 500,
     },
   },
-  shape: {
-    borderRadius: 8,
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          textTransform: 'none',
+          fontWeight: 500,
+        },
+      },
+    },
   },
 });
 
-// Temporary placeholder component for other pages
-const Placeholder: React.FC<{ title: string }> = ({ title }) => (
-  <div style={{ padding: '20px', textAlign: 'center' }}>
-    <h1>{title}</h1>
-    <p>Coming soon in M14-M16: {title} Dashboard Development</p>
-  </div>
-);
-
-function App() {
+const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -57,16 +64,17 @@ function App() {
         <DashboardLayout>
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/sales" element={<Placeholder title="Sales" />} />
-            <Route path="/inventory" element={<Placeholder title="Inventory" />} />
-            <Route path="/analytics" element={<Placeholder title="Analytics" />} />
-            <Route path="/reports" element={<Placeholder title="Reports" />} />
-            <Route path="/settings" element={<Placeholder title="Settings" />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/sales" element={<RealTimeSales />} />
+            <Route path="/inventory" element={<div>Inventory Page - Coming Soon</div>} />
+            <Route path="/analytics" element={<div>Analytics Page - Coming Soon</div>} />
+            <Route path="/reports" element={<div>Reports Page - Coming Soon</div>} />
+            <Route path="/settings" element={<div>Settings Page - Coming Soon</div>} />
           </Routes>
         </DashboardLayout>
       </Router>
     </ThemeProvider>
   );
-}
+};
 
 export default App;
