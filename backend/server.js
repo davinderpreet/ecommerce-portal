@@ -849,7 +849,7 @@ const SalesProcessor = require('./services/salesProcessor');
 const OrderManager = require('./services/orderManager');
 const orderManagementService = require('./services/orderManagementService');
 const salesProcessingService = require('./services/salesProcessingService');
-const salesReportingService = require('./services/salesReportingService');
+const SalesReportingService = require('./services/salesReportingService');
 const dataValidationService = require('./services/dataValidationService');
 const dashboardUIService = require('./services/dashboardUIService');
 const realTimeSalesService = require('./services/realTimeSalesService');
@@ -872,7 +872,7 @@ let syncService, dataMapper, webhookHandler, salesProcessor, orderManager;
 let orderLifecycleManager, fulfillmentService, customerNotificationService, orderAnalyticsDashboard;
 
 // Initialize M11 services
-let salesReportingService, reportGeneratorService;
+let reportGeneratorService;
 
 // Initialize M12 services
 let dataValidationService, validationRuleEngine, dataQualityMonitor;
@@ -1434,7 +1434,7 @@ app.get('/api/sales/analytics', async (req, res) => {
 app.get('/api/reports/sales/summary', authenticateToken, async (req, res) => {
   try {
     const { startDate, endDate, channel } = req.query;
-    const result = await salesReportingService.getSalesSummary(startDate, endDate, channel);
+    const result = await SalesReportingService.getSalesSummary(startDate, endDate, channel);
     res.json(result);
   } catch (error) {
     console.error('Sales summary error:', error);
@@ -1449,7 +1449,7 @@ app.get('/api/reports/sales/summary', authenticateToken, async (req, res) => {
 app.get('/api/reports/sales/channels', authenticateToken, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    const result = await salesReportingService.getChannelPerformance(startDate, endDate);
+    const result = await SalesReportingService.getChannelPerformance(startDate, endDate);
     res.json(result);
   } catch (error) {
     console.error('Channel performance error:', error);
@@ -1464,7 +1464,7 @@ app.get('/api/reports/sales/channels', authenticateToken, async (req, res) => {
 app.get('/api/reports/sales/products/top', authenticateToken, async (req, res) => {
   try {
     const { startDate, endDate, limit = 10 } = req.query;
-    const result = await salesReportingService.getTopProducts(startDate, endDate, parseInt(limit));
+    const result = await SalesReportingService.getTopProducts(startDate, endDate, parseInt(limit));
     res.json(result);
   } catch (error) {
     console.error('Top products error:', error);
@@ -1479,7 +1479,7 @@ app.get('/api/reports/sales/products/top', authenticateToken, async (req, res) =
 app.get('/api/reports/sales/trends', authenticateToken, async (req, res) => {
   try {
     const { startDate, endDate, granularity = 'daily' } = req.query;
-    const result = await salesReportingService.getSalesTrends(startDate, endDate, granularity);
+    const result = await SalesReportingService.getSalesTrends(startDate, endDate, granularity);
     res.json(result);
   } catch (error) {
     console.error('Sales trends error:', error);
@@ -1494,7 +1494,7 @@ app.get('/api/reports/sales/trends', authenticateToken, async (req, res) => {
 app.get('/api/reports/sales/customers/segmentation', authenticateToken, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    const result = await salesReportingService.getCustomerSegmentation(startDate, endDate);
+    const result = await SalesReportingService.getCustomerSegmentation(startDate, endDate);
     res.json(result);
   } catch (error) {
     console.error('Customer segmentation error:', error);
