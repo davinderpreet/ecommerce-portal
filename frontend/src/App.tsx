@@ -64,7 +64,7 @@ const App: React.FC = () => {
       <Router>
         <DashboardLayout>
           <Routes>
-            <Route path="/" element={<M15Dashboard />} />
+            <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<M15Dashboard />} />
             <Route path="/legacy" element={<Dashboard />} />
             <Route path="/sales" element={<RealTimeSales />} />
