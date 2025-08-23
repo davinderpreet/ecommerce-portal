@@ -2,12 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-
-// Import components (we'll create these next)
-// import Dashboard from './pages/Dashboard';
-// import Sales from './pages/Sales';
-// import Inventory from './pages/Inventory';
-// import Analytics from './pages/Analytics';
+import DashboardLayout from './components/Layout/DashboardLayout';
+import Dashboard from './pages/Dashboard';
 
 const theme = createTheme({
   palette: {
@@ -18,14 +14,38 @@ const theme = createTheme({
     secondary: {
       main: '#dc004e',
     },
+    success: {
+      main: '#2e7d32',
+    },
+    warning: {
+      main: '#ed6c02',
+    },
+    error: {
+      main: '#d32f2f',
+    },
+  },
+  typography: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    h4: {
+      fontWeight: 600,
+    },
+    h5: {
+      fontWeight: 600,
+    },
+    h6: {
+      fontWeight: 600,
+    },
+  },
+  shape: {
+    borderRadius: 8,
   },
 });
 
-// Temporary placeholder component
+// Temporary placeholder component for other pages
 const Placeholder: React.FC<{ title: string }> = ({ title }) => (
   <div style={{ padding: '20px', textAlign: 'center' }}>
     <h1>{title}</h1>
-    <p>Coming soon in Phase 4: Dashboard Development</p>
+    <p>Coming soon in M14-M16: {title} Dashboard Development</p>
   </div>
 );
 
@@ -34,14 +54,16 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <div className="App">
+        <DashboardLayout>
           <Routes>
-            <Route path="/" element={<Placeholder title="Dashboard" />} />
+            <Route path="/" element={<Dashboard />} />
             <Route path="/sales" element={<Placeholder title="Sales" />} />
             <Route path="/inventory" element={<Placeholder title="Inventory" />} />
             <Route path="/analytics" element={<Placeholder title="Analytics" />} />
+            <Route path="/reports" element={<Placeholder title="Reports" />} />
+            <Route path="/settings" element={<Placeholder title="Settings" />} />
           </Routes>
-        </div>
+        </DashboardLayout>
       </Router>
     </ThemeProvider>
   );

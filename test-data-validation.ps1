@@ -113,7 +113,7 @@ function Test-ProductValidation {
             id = "test-product-1"
             sku = "TEST-SKU-001"
             name = "Test Product"
-            price = 29.99
+            base_price = 29.99
             category = "Electronics"
             description = "This is a test product with sufficient description length to meet validation requirements."
         }
@@ -127,7 +127,7 @@ function Test-ProductValidation {
         productData = @{
             id = "test-product-2"
             name = "Test Product Without SKU"
-            price = 29.99
+            base_price = 29.99
         }
         channelId = "test-channel-id"
     }
@@ -140,7 +140,7 @@ function Test-ProductValidation {
             id = "test-product-3"
             sku = "TEST-SKU-003"
             name = "Negative Price Product"
-            price = -10.00
+            base_price = -10.00
             category = "Test"
         }
         channelId = "test-channel-id"
@@ -273,7 +273,7 @@ function Test-ValidationRules {
             id = "duplicate-product-1"
             sku = "DUPLICATE-SKU-001"
             name = "Duplicate Product"
-            price = 29.99
+            base_price = 29.99
         }
         channelId = "test-channel-id"
     }
@@ -322,10 +322,10 @@ function Test-ValidationHistory {
     $headers = @{ "Authorization" = "Bearer $global:AuthToken" }
     
     # Test validation history
-    Test-Endpoint -Name "Validation History" -Method "GET" -Url "$BaseUrl/api/validation/history?limit=25&offset=0" -Headers $headers
+    Test-Endpoint -Name "Validation History" -Method "GET" -Url "$BaseUrl/api/validation/history?limit=25`&offset=0" -Headers $headers
     
     # Test rule violations
-    Test-Endpoint -Name "Rule Violations" -Method "GET" -Url "$BaseUrl/api/validation/rules/violations?status=active&limit=25" -Headers $headers
+    Test-Endpoint -Name "Rule Violations" -Method "GET" -Url "$BaseUrl/api/validation/rules/violations?status=active`&limit=25" -Headers $headers
     
     # Test rule engine statistics
     Test-Endpoint -Name "Rule Engine Statistics" -Method "GET" -Url "$BaseUrl/api/validation/rules/stats" -Headers $headers
