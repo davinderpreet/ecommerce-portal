@@ -11,7 +11,7 @@ import SalesMetricsCard from '../components/Sales/SalesMetricsCard';
 import RealTimeSalesChart from '../components/Sales/RealTimeSalesChart';
 import ChannelComparisonChart from '../components/Sales/ChannelComparisonChart';
 import SalesFilterControls from '../components/Sales/SalesFilterControls';
-import { apiService } from '../services/api';
+import { salesAPI } from '../services/api';
 
 interface SalesData {
   summary: {
@@ -186,12 +186,16 @@ const RealTimeSales: React.FC = () => {
 
       // For now, use the existing sales summary API
       // In production, this would call the new real-time sales API
-      const response = await apiService.getSalesSummary();
+      const data = await salesAPI.getSalesData(filters);
       
-      if (response.success) {
+      if (data.success) {
         // Transform the data to match our interface
         const transformedData: SalesData = {
           summary: {
+            totalRevenue: data.data.totalSales || 0,
+            totalOrders: data.data.totalOrders || 0,
+            avgOrderValue: data.data.averageOrderValue || 0,
+            uniqueCustomers: data.data.totalCustomers || 0,
             totalRevenue: response.data.totalSales || 0,
             totalOrders: response.data.totalOrders || 0,
             avgOrderValue: response.data.averageOrderValue || 0,

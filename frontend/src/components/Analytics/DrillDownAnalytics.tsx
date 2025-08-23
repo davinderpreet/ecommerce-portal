@@ -236,7 +236,7 @@ const DrillDownAnalytics: React.FC<DrillDownAnalyticsProps> = ({
               <Bar 
                 dataKey="value" 
                 fill={theme.palette.primary.main}
-                onClick={(data) => handleDrillDown(data)}
+                onClick={() => handleDrillDown(entry.name, Number(entry.value))}
                 style={{ cursor: canDrillDown ? 'pointer' : 'default' }}
               />
             </BarChart>

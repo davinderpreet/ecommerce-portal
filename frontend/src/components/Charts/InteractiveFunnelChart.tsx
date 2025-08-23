@@ -20,6 +20,9 @@ interface FunnelStage {
   name: string;
   value: number;
   color?: string;
+  percentage?: number;
+  conversionRate?: number;
+  dropOffCount?: number;
   metadata?: {
     conversionRate?: number;
     dropOffRate?: number;
