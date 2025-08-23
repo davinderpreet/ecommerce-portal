@@ -850,12 +850,17 @@ const OrderLifecycleManager = require('./services/orderLifecycleManager');
 const FulfillmentService = require('./services/fulfillmentService');
 const CustomerNotificationService = require('./services/customerNotificationService');
 const OrderAnalyticsDashboard = require('./services/orderAnalyticsDashboard');
+const SalesReportingService = require('./services/salesReportingService');
+const ReportGeneratorService = require('./services/reportGeneratorService');
 
 // Initialize services
 let syncService, dataMapper, webhookHandler, salesProcessor, orderManager;
 
 // Initialize M10 services
 let orderLifecycleManager, fulfillmentService, customerNotificationService, orderAnalyticsDashboard;
+
+// Initialize M11 services
+let salesReportingService, reportGeneratorService;
 
 // Initialize services on startup (with error handling)
 (async () => {
@@ -919,6 +924,22 @@ let orderLifecycleManager, fulfillmentService, customerNotificationService, orde
     console.log('✅ OrderAnalyticsDashboard initialized');
   } catch (error) {
     console.error('❌ OrderAnalyticsDashboard initialization failed:', error.message);
+  }
+
+  try {
+    salesReportingService = new SalesReportingService();
+    await salesReportingService.initialize();
+    console.log('✅ SalesReportingService initialized');
+  } catch (error) {
+    console.error('❌ SalesReportingService initialization failed:', error.message);
+  }
+
+  try {
+    reportGeneratorService = new ReportGeneratorService();
+    await reportGeneratorService.initialize();
+    console.log('✅ ReportGeneratorService initialized');
+  } catch (error) {
+    console.error('❌ ReportGeneratorService initialization failed:', error.message);
   }
 })();
 
@@ -1405,11 +1426,12 @@ app.use('*', (req, res) => {
 // =====================================================
 
 app.listen(PORT, () => {
-  console.log(` E-commerce Portal API running on port ${PORT}`);
-  console.log(` Health check: http://localhost:${PORT}/api/health`);
-  console.log(` Best Buy Canada test: http://localhost:${PORT}/api/bestbuy/test`);
+  console.log(`🚀 E-commerce Portal API running on port ${PORT}`);
+  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🍁 Best Buy Canada test: http://localhost:${PORT}/api/bestbuy/test`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Integrations available:`);
-  console.log(`  - Shopify: ${!!process.env.SHOPIFY_ACCESS_TOKEN}`);
-  console.log(`  - Best Buy Canada: ${!!process.env.BESTBUY_CANADA_API_KEY}`);
+  console.log(`PORT=${PORT}`);
+  console.log('Integrations available:');
+  console.log('  - Shopify:', !!process.env.SHOPIFY_ACCESS_TOKEN);
+  console.log('  - Best Buy Canada:', !!process.env.BESTBUY_CANADA_API_KEY);
 });
