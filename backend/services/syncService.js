@@ -30,11 +30,11 @@ class SyncService {
       // Test database connection first
       await this.db.query('SELECT NOW()');
       
-      // Create sync logs table
+      // Create sync logs table (without foreign key constraint)
       await this.db.query(`
         CREATE TABLE IF NOT EXISTS sync_logs (
           id SERIAL PRIMARY KEY,
-          channel_id INTEGER REFERENCES channels(id),
+          channel_id INTEGER,
           sync_type VARCHAR(50) NOT NULL,
           status VARCHAR(20) NOT NULL,
           records_processed INTEGER DEFAULT 0,
@@ -46,11 +46,11 @@ class SyncService {
         )
       `);
 
-      // Create sync queue table
+      // Create sync queue table (without foreign key constraint)
       await this.db.query(`
         CREATE TABLE IF NOT EXISTS sync_queue (
           id SERIAL PRIMARY KEY,
-          channel_id INTEGER REFERENCES channels(id),
+          channel_id INTEGER,
           sync_type VARCHAR(50) NOT NULL,
           priority INTEGER DEFAULT 5,
           payload JSONB,
