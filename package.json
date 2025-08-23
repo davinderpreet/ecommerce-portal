@@ -1,36 +1,51 @@
 {
-  "name": "ecommerce-portal",
+  "name": "ecommerce-portal-backend",
   "version": "1.0.0",
-  "description": "High-end multi-channel e-commerce management portal",
-  "main": "index.js",
+  "description": "Multi-channel e-commerce portal backend with Best Buy integration",
+  "main": "server.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "build": "npm run build:backend && npm run build:frontend",
-    "build:backend": "cd backend && npm run build",
-    "build:frontend": "cd frontend && npm run build",
-    "start": "cd backend && npm start",
-    "test": "npm run test:backend && npm run test:frontend",
-    "test:backend": "cd backend && npm test",
-    "test:frontend": "cd frontend && npm test",
-    "migrate": "cd backend && npm run migrate",
-    "seed": "cd backend && npm run seed",
-    "setup": "npm install && cd backend && npm install && cd ../frontend && npm install"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "echo 'Build completed - using vanilla JS'",
+    "test": "node scripts/testAuth.js",
+    "test:bestbuy": "node scripts/testBestBuy.js",
+    "test:shopify": "node scripts/testShopify.js",
+    "test:all": "npm run test && npm run test:bestbuy && npm run test:shopify",
+    "migrate": "node scripts/runMigrations.js",
+    "seed": "node scripts/seedDatabase.js",
+    "setup": "node scripts/setup.js",
+    "create-admin": "node scripts/createAdmin.js"
   },
-  "workspaces": [
-    "backend",
-    "frontend",
-    "shared"
-  ],
+  "dependencies": {
+    "express": "^4.18.2",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.2",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "compression": "^1.7.4"
+  },
   "devDependencies": {
-    "concurrently": "^8.2.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "eslint": "^8.45.0",
-    "prettier": "^3.0.0"
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
   },
-  "keywords": ["ecommerce", "multi-channel", "dashboard", "analytics"],
+  "keywords": [
+    "ecommerce", 
+    "multi-channel", 
+    "bestbuy", 
+    "shopify", 
+    "amazon", 
+    "api", 
+    "integration"
+  ],
   "author": "Your Name",
-  "license": "PRIVATE"
+  "license": "PRIVATE",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
 }
