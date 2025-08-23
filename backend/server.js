@@ -635,9 +635,6 @@ app.post('/api/orders/process-notifications', authenticateToken, async (req, res
 // WEBHOOK ENDPOINTS - REAL-TIME UPDATES
 // =====================================================
 
-// Webhook routes
-app.use('/api/webhooks', webhookHandler.getRoutes());
-
 // =====================================================
 // PRODUCTS MODULE
 // =====================================================
