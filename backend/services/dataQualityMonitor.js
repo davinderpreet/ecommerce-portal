@@ -3,7 +3,13 @@
 // MILESTONE 12: Data Validation System - Quality Monitor
 // =====================================================
 
-const pool = require('../database/connection');
+const { Pool } = require('pg');
+
+// Database connection
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
 class DataQualityMonitor {
   constructor() {
