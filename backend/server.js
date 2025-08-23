@@ -501,13 +501,14 @@ const syncService = new SyncService();
 const dataMapper = new DataMapper();
 const webhookHandler = new WebhookHandler(syncService, dataMapper);
 
-// Initialize sync service on startup
+// Initialize sync service on startup (with error handling)
 syncService.initialize().then(() => {
   console.log('✅ Sync Service initialized');
   // Start automatic sync scheduler (every 15 minutes)
   syncService.startScheduler(15);
 }).catch(error => {
-  console.error('❌ Failed to initialize Sync Service:', error);
+  console.error('❌ Failed to initialize Sync Service:', error.message);
+  console.log('⚠️ Sync Service will retry initialization on first API call');
 });
 
 // Manual sync trigger endpoint

@@ -9,7 +9,7 @@ const { Pool } = require('pg');
 class SyncService {
   constructor() {
     this.db = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     });
     
@@ -27,6 +27,9 @@ class SyncService {
    */
   async initialize() {
     try {
+      // Test database connection first
+      await this.db.query('SELECT NOW()');
+      
       // Create sync logs table
       await this.db.query(`
         CREATE TABLE IF NOT EXISTS sync_logs (
@@ -63,8 +66,9 @@ class SyncService {
       console.log('SyncService initialized successfully');
       return true;
     } catch (error) {
-      console.error('Failed to initialize SyncService:', error);
-      throw error;
+      console.error('Failed to initialize SyncService:', error.message);
+      // Don't throw error to prevent server startup failure
+      return false;
     }
   }
 
