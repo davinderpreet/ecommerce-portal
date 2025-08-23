@@ -108,7 +108,7 @@ class SyncService {
       const result = await this.db.query(`
         SELECT sq.*, c.name as channel_name, c.api_config
         FROM sync_queue sq
-        JOIN channels c ON sq.channel_id = c.id
+        LEFT JOIN channels c ON sq.channel_id::text = c.id::text
         WHERE sq.status = 'pending' 
         AND sq.retry_count < sq.max_retries
         AND sq.scheduled_at <= CURRENT_TIMESTAMP
