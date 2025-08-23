@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 const axios = require('axios');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -14,8 +15,8 @@ const PORT = process.env.PORT || 3001;
 
 // Database connection
 const pool = new Pool({
-  connectionString: process.env.NEON_DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 // Basic middleware
@@ -26,6 +27,9 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   next();
 });
+
+// Serve static files from React build
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 // Authentication middleware
 function authenticateToken(req, res, next) {
@@ -55,18 +59,39 @@ function authenticateToken(req, res, next) {
 // BASIC ENDPOINTS
 // =====================================================
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    success: true, 
-    message: 'E-commerce Portal API is running',
-    timestamp: new Date().toISOString(),
-    integrations: {
-      shopify: !!process.env.SHOPIFY_ACCESS_TOKEN,
-      bestbuy_canada: !!process.env.BESTBUY_CANADA_API_KEY,
-      amazon: false
+// Health check - robust for Railway
+app.get('/api/health', async (req, res) => {
+  try {
+    // Test database connection
+    let dbStatus = 'disconnected';
+    try {
+      await pool.query('SELECT 1');
+      dbStatus = 'connected';
+    } catch (dbError) {
+      console.warn('Health check: Database connection failed:', dbError.message);
     }
-  });
+
+    res.json({ 
+      success: true, 
+      message: 'E-commerce Portal API is running',
+      timestamp: new Date().toISOString(),
+      database: dbStatus,
+      environment: process.env.NODE_ENV || 'development',
+      port: PORT,
+      integrations: {
+        shopify: !!process.env.SHOPIFY_ACCESS_TOKEN,
+        bestbuy_canada: !!process.env.BESTBUY_CANADA_API_KEY,
+        amazon: false
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Health check failed',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Database test
@@ -2051,14 +2076,52 @@ app.get('*', (req, res) => {
 // START SERVER
 // =====================================================
 
-app.listen(PORT, () => {
-  console.log(`🚀 E-commerce Portal API running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`🎯 Dashboard: http://localhost:${PORT}/sales`);
-  console.log(`🍁 Best Buy Canada test: http://localhost:${PORT}/api/bestbuy/test`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`PORT=${PORT}`);
-  console.log('Integrations available:');
-  console.log('  - Shopify:', !!process.env.SHOPIFY_ACCESS_TOKEN);
-  console.log('  - Best Buy Canada:', !!process.env.BESTBUY_CANADA_API_KEY);
+// Test database connection on startup
+async function testDatabaseConnection() {
+  try {
+    await pool.query('SELECT NOW()');
+    console.log('✅ Database connection successful');
+    return true;
+  } catch (error) {
+    console.error('❌ Database connection failed:', error.message);
+    return false;
+  }
+}
+
+// Start server with error handling
+async function startServer() {
+  try {
+    // Test database connection
+    const dbConnected = await testDatabaseConnection();
+    if (!dbConnected) {
+      console.warn('⚠️ Starting server without database connection');
+    }
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 E-commerce Portal API running on port ${PORT}`);
+      console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`🎯 Dashboard: http://localhost:${PORT}/sales`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log('Integrations available:');
+      console.log('  - Shopify:', !!process.env.SHOPIFY_ACCESS_TOKEN);
+      console.log('  - Best Buy Canada:', !!process.env.BESTBUY_CANADA_API_KEY);
+    });
+  } catch (error) {
+    console.error('❌ Server startup failed:', error);
+    process.exit(1);
+  }
+}
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
 });
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+// Start the server
+startServer();
