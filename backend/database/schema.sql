@@ -23,6 +23,26 @@ CREATE TABLE users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Sales Orders
+CREATE TABLE sales_orders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id VARCHAR(255) UNIQUE NOT NULL,
+    external_order_id VARCHAR(255),
+    channel_id UUID REFERENCES channels(id),
+    customer_email VARCHAR(255) NOT NULL,
+    order_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    status VARCHAR(50) DEFAULT 'pending',
+    order_status VARCHAR(50) DEFAULT 'pending',
+    total_amount DECIMAL(12,2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'CAD',
+    shipping_address JSONB,
+    billing_address JSONB,
+    items JSONB NOT NULL,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Channels Configuration
 CREATE TABLE channels (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -106,6 +126,18 @@ CREATE TABLE inventory_movements (
     new_quantity INTEGER NOT NULL,
     reference_id VARCHAR(200), -- order_id, adjustment_id, etc.
     notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Order Status History
+CREATE TABLE order_status_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id VARCHAR(255) NOT NULL,
+    previous_status VARCHAR(50),
+    new_status VARCHAR(50) NOT NULL,
+    changed_by VARCHAR(255),
+    change_reason TEXT,
+    metadata JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
