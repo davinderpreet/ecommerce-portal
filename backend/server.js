@@ -24,7 +24,7 @@ app.use((req, res, next) => {
 });
 
 // =====================================================
-// SHOPIFY API CLIENT (FIXED)
+// SHOPIFY API CLIENT (EXISTING)
 // =====================================================
 
 class ShopifyAPIClient {
@@ -35,7 +35,6 @@ class ShopifyAPIClient {
     this.baseURL = `https://${this.shopDomain}/admin/api/${this.apiVersion}`;
   }
 
-  // Make authenticated request to Shopify
   async makeRequest(endpoint, method = 'GET', data = null) {
     try {
       if (!this.shopDomain || !this.accessToken) {
@@ -71,26 +70,22 @@ class ShopifyAPIClient {
     }
   }
 
-  // FIXED: Get products without page parameter
   async getProducts(limit = 50) {
     const endpoint = `/products.json?limit=${limit}`;
     return await this.makeRequest(endpoint);
   }
 
-  // Get single product from Shopify
   async getProduct(productId) {
     const endpoint = `/products/${productId}.json`;
     return await this.makeRequest(endpoint);
   }
 
-  // Create product in Shopify
   async createProduct(productData) {
     const endpoint = '/products.json';
     const data = { product: productData };
     return await this.makeRequest(endpoint, 'POST', data);
   }
 
-  // FIXED: Get orders without page parameter
   async getOrders(status = 'any', limit = 50, createdAtMin = null) {
     let endpoint = `/orders.json?status=${status}&limit=${limit}`;
     if (createdAtMin) {
@@ -99,16 +94,195 @@ class ShopifyAPIClient {
     return await this.makeRequest(endpoint);
   }
 
-  // Get shop information
   async getShopInfo() {
     const endpoint = '/shop.json';
     return await this.makeRequest(endpoint);
   }
 
-  // Get locations (warehouses/stores)
   async getLocations() {
     const endpoint = '/locations.json';
     return await this.makeRequest(endpoint);
+  }
+}
+
+// =====================================================
+// BEST BUY API CLIENT (NEW)
+// =====================================================
+
+class BestBuyAPIClient {
+  constructor() {
+    this.apiKey = process.env.BESTBUY_API_KEY;
+    this.baseURL = 'https://api.bestbuy.com/v1';
+    this.format = 'json';
+  }
+
+  // Make authenticated request to Best Buy API
+  async makeRequest(endpoint, params = {}) {
+    try {
+      if (!this.apiKey) {
+        throw new Error('Best Buy API key is missing');
+      }
+
+      // Add API key and format to parameters
+      const queryParams = {
+        apikey: this.apiKey,
+        format: this.format,
+        ...params
+      };
+
+      const queryString = new URLSearchParams(queryParams).toString();
+      const url = `${this.baseURL}${endpoint}?${queryString}`;
+
+      console.log('Best Buy API Request URL:', url);
+
+      const response = await axios.get(url, {
+        timeout: 30000,
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'EcommercePortal/1.0'
+        }
+      });
+
+      return {
+        success: true,
+        data: response.data,
+        status: response.status
+      };
+    } catch (error) {
+      console.error('Best Buy API Error:', error.response?.data || error.message);
+      return {
+        success: false,
+        error: error.response?.data || error.message,
+        status: error.response?.status || 500
+      };
+    }
+  }
+
+  // Search products by various criteria
+  async searchProducts(searchTerm, options = {}) {
+    const {
+      categoryId = null,
+      minPrice = null,
+      maxPrice = null,
+      page = 1,
+      pageSize = 25,
+      sortBy = 'name'
+    } = options;
+
+    let searchQuery = '';
+    
+    if (searchTerm) {
+      searchQuery += `search=${encodeURIComponent(searchTerm)}`;
+    }
+    
+    if (categoryId) {
+      searchQuery += searchQuery ? '&' : '';
+      searchQuery += `categoryPath.id=${categoryId}`;
+    }
+    
+    if (minPrice) {
+      searchQuery += searchQuery ? '&' : '';
+      searchQuery += `salePrice>=${minPrice}`;
+    }
+    
+    if (maxPrice) {
+      searchQuery += searchQuery ? '&' : '';
+      searchQuery += `salePrice<=${maxPrice}`;
+    }
+
+    const params = {
+      show: 'sku,name,salePrice,regularPrice,shortDescription,longDescription,manufacturer,categoryPath,images,url,customerReviewAverage,customerReviewCount,addToCartUrl',
+      sort: `${sortBy}.asc`,
+      page: page,
+      pageSize: pageSize
+    };
+
+    const endpoint = searchQuery ? `/products((${searchQuery}))` : '/products';
+    return await this.makeRequest(endpoint, params);
+  }
+
+  // Get product by SKU
+  async getProductBySku(sku) {
+    const endpoint = `/products(sku=${sku})`;
+    const params = {
+      show: 'sku,name,salePrice,regularPrice,shortDescription,longDescription,manufacturer,categoryPath,images,url,customerReviewAverage,customerReviewCount,addToCartUrl,quantityLimit'
+    };
+    
+    return await this.makeRequest(endpoint, params);
+  }
+
+  // Get categories
+  async getCategories(categoryId = null) {
+    let endpoint = '/categories';
+    
+    if (categoryId) {
+      endpoint = `/categories(id=${categoryId})`;
+    }
+    
+    const params = {
+      show: 'id,name,path,subCategories'
+    };
+    
+    return await this.makeRequest(endpoint, params);
+  }
+
+  // Get store information
+  async getStores(zipCode = null, city = null, storeType = 'BigBox') {
+    let searchQuery = `storeType=${storeType}`;
+    
+    if (zipCode) {
+      searchQuery += `&postalCode=${zipCode}`;
+    }
+    
+    if (city) {
+      searchQuery += `&city=${encodeURIComponent(city)}`;
+    }
+
+    const endpoint = `/stores((${searchQuery}))`;
+    const params = {
+      show: 'storeId,storeType,name,address,city,region,postalCode,phone,distance',
+      sort: 'distance.asc'
+    };
+    
+    return await this.makeRequest(endpoint, params);
+  }
+
+  // Get product availability at stores
+  async getProductAvailability(sku, storeIds = []) {
+    let endpoint = `/products/${sku}/stores`;
+    
+    if (storeIds.length > 0) {
+      const storeQuery = storeIds.join(',');
+      endpoint += `((storeId in(${storeQuery})))`;
+    }
+    
+    const params = {
+      show: 'storeId,name,phone,distance,sku,pickup,shipping,delivery'
+    };
+    
+    return await this.makeRequest(endpoint, params);
+  }
+
+  // Get trending products
+  async getTrendingProducts(categoryId = null, limit = 25) {
+    let endpoint = '/products';
+    let searchQuery = 'customerReviewCount>=10&customerReviewAverage>=4.0';
+    
+    if (categoryId) {
+      searchQuery += `&categoryPath.id=${categoryId}`;
+    }
+    
+    const params = {
+      show: 'sku,name,salePrice,regularPrice,shortDescription,manufacturer,categoryPath,images,url,customerReviewAverage,customerReviewCount',
+      sort: 'customerReviewCount.desc',
+      pageSize: limit
+    };
+    
+    if (searchQuery) {
+      endpoint = `/products((${searchQuery}))`;
+    }
+    
+    return await this.makeRequest(endpoint, params);
   }
 }
 
@@ -147,7 +321,12 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     success: true, 
     message: 'E-commerce Portal API is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    integrations: {
+      shopify: !!process.env.SHOPIFY_ACCESS_TOKEN,
+      bestbuy: !!process.env.BESTBUY_API_KEY,
+      amazon: false // Will implement later
+    }
   });
 });
 
@@ -170,7 +349,7 @@ app.get('/api/db-test', async (req, res) => {
 });
 
 // =====================================================
-// AUTHENTICATION ENDPOINTS
+// AUTHENTICATION ENDPOINTS (EXISTING)
 // =====================================================
 
 // Register user
@@ -390,7 +569,7 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 // =====================================================
-// PRODUCTS MODULE
+// PRODUCTS MODULE (EXISTING)
 // =====================================================
 
 // Get all products
@@ -543,7 +722,7 @@ app.post('/api/products', authenticateToken, async (req, res) => {
 });
 
 // =====================================================
-// INVENTORY MODULE
+// INVENTORY MODULE (EXISTING)
 // =====================================================
 
 // Get inventory for all products
@@ -595,7 +774,7 @@ app.get('/api/inventory', async (req, res) => {
 });
 
 // =====================================================
-// SALES MODULE - ISOLATED SALES DATA PROCESSING
+// SALES MODULE (EXISTING)
 // =====================================================
 
 // Get sales orders
@@ -743,7 +922,7 @@ app.get('/api/sales/analytics', async (req, res) => {
 });
 
 // =====================================================
-// CHANNELS MODULE
+// CHANNELS MODULE (EXISTING)
 // =====================================================
 
 // Get all channels
@@ -768,7 +947,7 @@ app.get('/api/channels', async (req, res) => {
 });
 
 // =====================================================
-// SHOPIFY API ENDPOINTS (FIXED)
+// SHOPIFY API ENDPOINTS (EXISTING)
 // =====================================================
 
 // Initialize Shopify client
@@ -815,7 +994,7 @@ app.get('/api/shopify/test', authenticateToken, async (req, res) => {
   }
 });
 
-// FIXED: Get Shopify products (no page parameter)
+// Get Shopify products
 app.get('/api/shopify/products', authenticateToken, async (req, res) => {
   try {
     const { limit = 50 } = req.query;
@@ -847,47 +1026,337 @@ app.get('/api/shopify/products', authenticateToken, async (req, res) => {
   }
 });
 
-// Sync products from Shopify to our database
-app.post('/api/shopify/sync/products', authenticateToken, async (req, res) => {
+// =====================================================
+// BEST BUY API ENDPOINTS (NEW)
+// =====================================================
+
+// Initialize Best Buy client
+const bestBuyClient = new BestBuyAPIClient();
+
+// Test Best Buy connection
+app.get('/api/bestbuy/test', authenticateToken, async (req, res) => {
   try {
-    const { limit = 50 } = req.body;
-    
-    // Get products from Shopify
-    const shopifyResult = await shopifyClient.getProducts(limit);
-    
-    if (!shopifyResult.success) {
+    if (!process.env.BESTBUY_API_KEY) {
       return res.status(400).json({
         success: false,
-        message: 'Failed to fetch products from Shopify',
-        error: shopifyResult.error
+        message: 'Best Buy API configuration missing',
+        required: {
+          BESTBUY_API_KEY: 'your-bestbuy-api-key'
+        },
+        help: 'Get your API key from: https://developer.bestbuy.com/'
       });
     }
 
-    const shopifyProducts = shopifyResult.data.products;
+    // Test with a simple categories request
+    const result = await bestBuyClient.getCategories();
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Best Buy API connection successful',
+        apiKey: `${process.env.BESTBUY_API_KEY.substring(0, 8)}...`,
+        categoriesCount: result.data.categories?.length || 0
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Failed to connect to Best Buy API',
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Best Buy test error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Best Buy API test failed',
+      error: error.message
+    });
+  }
+});
+
+// Search Best Buy products
+app.get('/api/bestbuy/products/search', authenticateToken, async (req, res) => {
+  try {
+    const { 
+      q, 
+      category, 
+      minPrice, 
+      maxPrice, 
+      page = 1, 
+      limit = 25,
+      sortBy = 'name'
+    } = req.query;
+
+    if (!q && !category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search term or category is required'
+      });
+    }
+
+    const options = {
+      categoryId: category,
+      minPrice: minPrice ? parseFloat(minPrice) : null,
+      maxPrice: maxPrice ? parseFloat(maxPrice) : null,
+      page: parseInt(page),
+      pageSize: parseInt(limit),
+      sortBy
+    };
+
+    const result = await bestBuyClient.searchProducts(q, options);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        data: result.data.products || [],
+        pagination: {
+          page: result.data.currentPage || 1,
+          totalPages: result.data.totalPages || 1,
+          total: result.data.total || 0,
+          from: result.data.from || 1,
+          to: result.data.to || 0
+        },
+        source: 'bestbuy'
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Failed to search Best Buy products',
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Best Buy product search error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search Best Buy products',
+      error: error.message
+    });
+  }
+});
+
+// Get Best Buy product by SKU
+app.get('/api/bestbuy/products/:sku', authenticateToken, async (req, res) => {
+  try {
+    const { sku } = req.params;
+    
+    const result = await bestBuyClient.getProductBySku(sku);
+    
+    if (result.success) {
+      if (result.data.products && result.data.products.length > 0) {
+        res.json({
+          success: true,
+          data: result.data.products[0],
+          source: 'bestbuy'
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: 'Product not found'
+        });
+      }
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Failed to fetch Best Buy product',
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Get Best Buy product error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch Best Buy product',
+      error: error.message
+    });
+  }
+});
+
+// Get Best Buy categories
+app.get('/api/bestbuy/categories', authenticateToken, async (req, res) => {
+  try {
+    const { categoryId } = req.query;
+    
+    const result = await bestBuyClient.getCategories(categoryId);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        data: result.data.categories || [],
+        source: 'bestbuy'
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Failed to fetch Best Buy categories',
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Get Best Buy categories error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch Best Buy categories',
+      error: error.message
+    });
+  }
+});
+
+// Get Best Buy stores
+app.get('/api/bestbuy/stores', authenticateToken, async (req, res) => {
+  try {
+    const { zipCode, city, storeType = 'BigBox' } = req.query;
+    
+    if (!zipCode && !city) {
+      return res.status(400).json({
+        success: false,
+        message: 'Zip code or city is required'
+      });
+    }
+    
+    const result = await bestBuyClient.getStores(zipCode, city, storeType);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        data: result.data.stores || [],
+        source: 'bestbuy'
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Failed to fetch Best Buy stores',
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Get Best Buy stores error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch Best Buy stores',
+      error: error.message
+    });
+  }
+});
+
+// Get product availability at Best Buy stores
+app.get('/api/bestbuy/products/:sku/availability', authenticateToken, async (req, res) => {
+  try {
+    const { sku } = req.params;
+    const { storeIds } = req.query;
+    
+    let storeIdArray = [];
+    if (storeIds) {
+      storeIdArray = storeIds.split(',').map(id => parseInt(id.trim()));
+    }
+    
+    const result = await bestBuyClient.getProductAvailability(sku, storeIdArray);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        data: result.data.stores || [],
+        source: 'bestbuy'
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Failed to fetch product availability',
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Get product availability error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch product availability',
+      error: error.message
+    });
+  }
+});
+
+// Get trending products from Best Buy
+app.get('/api/bestbuy/products/trending', authenticateToken, async (req, res) => {
+  try {
+    const { category, limit = 25 } = req.query;
+    
+    const result = await bestBuyClient.getTrendingProducts(category, parseInt(limit));
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        data: result.data.products || [],
+        source: 'bestbuy',
+        total: result.data.total || 0
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Failed to fetch trending products',
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Get trending products error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch trending products',
+      error: error.message
+    });
+  }
+});
+
+// Sync products from Best Buy to our database
+app.post('/api/bestbuy/sync/products', authenticateToken, async (req, res) => {
+  try {
+    const { searchTerm, category, limit = 50 } = req.body;
+    
+    if (!searchTerm && !category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search term or category is required for sync'
+      });
+    }
+
+    // Get products from Best Buy
+    const bestBuyResult = await bestBuyClient.searchProducts(searchTerm, {
+      categoryId: category,
+      pageSize: limit
+    });
+    
+    if (!bestBuyResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to fetch products from Best Buy',
+        error: bestBuyResult.error
+      });
+    }
+
+    const bestBuyProducts = bestBuyResult.data.products || [];
     let syncedCount = 0;
     let errors = [];
 
-    // Get Shopify channel ID
+    // Get Best Buy channel ID
     const channelResult = await pool.query(
-      "SELECT id FROM channels WHERE channel_type = 'shopify' LIMIT 1"
+      "SELECT id FROM channels WHERE channel_type = 'bestbuy' LIMIT 1"
     );
     
     if (channelResult.rows.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Shopify channel not found in database'
+        message: 'Best Buy channel not found in database'
       });
     }
     
-    const shopifyChannelId = channelResult.rows[0].id;
+    const bestBuyChannelId = channelResult.rows[0].id;
 
-    // Process each Shopify product
-    for (const shopifyProduct of shopifyProducts) {
+    // Process each Best Buy product
+    for (const bestBuyProduct of bestBuyProducts) {
       try {
         // Check if product already exists
         const existingProduct = await pool.query(
           'SELECT id FROM products WHERE sku = $1',
-          [shopifyProduct.handle || `shopify-${shopifyProduct.id}`]
+          [bestBuyProduct.sku]
         );
 
         let productId;
@@ -900,14 +1369,14 @@ app.post('/api/shopify/sync/products', authenticateToken, async (req, res) => {
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
              RETURNING id`,
             [
-              shopifyProduct.handle || `shopify-${shopifyProduct.id}`,
-              shopifyProduct.title,
-              shopifyProduct.body_html?.replace(/<[^>]*>/g, '') || '',
-              shopifyProduct.vendor || 'Unknown',
-              shopifyProduct.product_type || 'General',
-              shopifyProduct.variants?.[0]?.price || 0,
-              shopifyProduct.variants?.[0]?.compare_at_price || 0,
-              shopifyProduct.variants?.[0]?.weight || null
+              bestBuyProduct.sku,
+              bestBuyProduct.name,
+              bestBuyProduct.shortDescription || bestBuyProduct.longDescription || '',
+              bestBuyProduct.manufacturer || 'Unknown',
+              bestBuyProduct.categoryPath?.[0]?.name || 'General',
+              bestBuyProduct.salePrice || bestBuyProduct.regularPrice || 0,
+              bestBuyProduct.regularPrice || 0,
+              null // Best Buy doesn't provide weight in basic product info
             ]
           );
           productId = productResult.rows[0].id;
@@ -930,20 +1399,20 @@ app.post('/api/shopify/sync/products', authenticateToken, async (req, res) => {
              last_synced = NOW()`,
           [
             productId,
-            shopifyChannelId,
-            shopifyProduct.handle,
-            shopifyProduct.id.toString(),
-            shopifyProduct.title,
-            shopifyProduct.variants?.[0]?.price || 0,
+            bestBuyChannelId,
+            bestBuyProduct.sku,
+            bestBuyProduct.sku,
+            bestBuyProduct.name,
+            bestBuyProduct.salePrice || bestBuyProduct.regularPrice || 0,
             'completed'
           ]
         );
 
         syncedCount++;
       } catch (error) {
-        console.error(`Error syncing product ${shopifyProduct.id}:`, error);
+        console.error(`Error syncing Best Buy product ${bestBuyProduct.sku}:`, error);
         errors.push({
-          productId: shopifyProduct.id,
+          productSku: bestBuyProduct.sku,
           error: error.message
         });
       }
@@ -951,152 +1420,24 @@ app.post('/api/shopify/sync/products', authenticateToken, async (req, res) => {
 
     // Update channel sync status
     await pool.query(
-      "UPDATE channels SET sync_status = 'completed', last_sync = NOW() WHERE channel_type = 'shopify'"
+      "UPDATE channels SET sync_status = 'completed', last_sync = NOW() WHERE channel_type = 'bestbuy'"
     );
 
     res.json({
       success: true,
-      message: `Synced ${syncedCount} products from Shopify`,
+      message: `Synced ${syncedCount} products from Best Buy`,
       data: {
         syncedCount,
-        totalProducts: shopifyProducts.length,
+        totalProducts: bestBuyProducts.length,
         errors: errors.length > 0 ? errors : null
       }
     });
 
   } catch (error) {
-    console.error('Shopify product sync error:', error);
+    console.error('Best Buy product sync error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to sync products from Shopify',
-      error: error.message
-    });
-  }
-});
-
-// Push product to Shopify
-app.post('/api/shopify/products', authenticateToken, async (req, res) => {
-  try {
-    const { productId } = req.body;
-    
-    if (!productId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Product ID is required'
-      });
-    }
-
-    // Get product from our database
-    const productResult = await pool.query(
-      'SELECT * FROM products WHERE id = $1',
-      [productId]
-    );
-
-    if (productResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found'
-      });
-    }
-
-    const product = productResult.rows[0];
-
-    // Prepare Shopify product data
-    const shopifyProductData = {
-      title: product.name,
-      body_html: product.description || '',
-      vendor: product.brand || 'Unknown',
-      product_type: product.category || 'General',
-      handle: product.sku.toLowerCase().replace(/[^a-z0-9]/g, '-'),
-      variants: [{
-        price: product.base_price.toString(),
-        compare_at_price: product.cost_price ? product.cost_price.toString() : null,
-        sku: product.sku,
-        weight: product.weight || 0,
-        weight_unit: 'kg',
-        inventory_management: 'shopify',
-        inventory_policy: 'deny'
-      }]
-    };
-
-    // Create product in Shopify
-    const result = await shopifyClient.createProduct(shopifyProductData);
-
-    if (result.success) {
-      // Update channel_products mapping
-      const channelResult = await pool.query(
-        "SELECT id FROM channels WHERE channel_type = 'shopify' LIMIT 1"
-      );
-      
-      if (channelResult.rows.length > 0) {
-        const shopifyChannelId = channelResult.rows[0].id;
-        
-        await pool.query(
-          `INSERT INTO channel_products 
-           (product_id, channel_id, channel_sku, channel_product_id, channel_name, channel_price, sync_status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
-           ON CONFLICT (product_id, channel_id) 
-           DO UPDATE SET 
-             channel_product_id = $4,
-             sync_status = $7,
-             last_synced = NOW()`,
-          [
-            productId,
-            shopifyChannelId,
-            product.sku,
-            result.data.product.id.toString(),
-            result.data.product.title,
-            result.data.product.variants[0].price,
-            'completed'
-          ]
-        );
-      }
-
-      res.json({
-        success: true,
-        message: 'Product created in Shopify successfully',
-        data: result.data.product
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        message: 'Failed to create product in Shopify',
-        error: result.error
-      });
-    }
-
-  } catch (error) {
-    console.error('Create Shopify product error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create product in Shopify',
-      error: error.message
-    });
-  }
-});
-
-// Get Shopify store locations
-app.get('/api/shopify/locations', authenticateToken, async (req, res) => {
-  try {
-    const result = await shopifyClient.getLocations();
-    
-    if (result.success) {
-      res.json({
-        success: true,
-        data: result.data.locations
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        message: 'Failed to fetch Shopify locations',
-        error: result.error
-      });
-    }
-  } catch (error) {
-    console.error('Get Shopify locations error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch Shopify locations',
+      message: 'Failed to sync products from Best Buy',
       error: error.message
     });
   }
@@ -1128,5 +1469,6 @@ app.listen(PORT, () => {
   console.log(`📊 Inventory: http://localhost:${PORT}/api/inventory`);
   console.log(`💰 Sales: http://localhost:${PORT}/api/sales/*`);
   console.log(`🔗 Channels: http://localhost:${PORT}/api/channels`);
-  console.log(`🛍️ Shopify: http://localhost:${PORT}/api/shopify/* (FIXED)`);
+  console.log(`🛍️ Shopify: http://localhost:${PORT}/api/shopify/*`);
+  console.log(`🏪 Best Buy: http://localhost:${PORT}/api/bestbuy/* (NEW)`);
 });
