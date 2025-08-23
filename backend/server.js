@@ -727,6 +727,9 @@ app.get('/api/products/:id', async (req, res) => {
   }
 });
 
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Create new product (protected)
 app.post('/api/products', authenticateToken, async (req, res) => {
   try {
@@ -2027,12 +2030,31 @@ app.use('*', (req, res) => {
 });
 
 // =====================================================
+// SERVE REACT FRONTEND
+// =====================================================
+
+// Serve React frontend build files
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// Handle React Router - serve index.html for all non-API routes
+app.get('*', (req, res) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ message: 'API endpoint not found' });
+  }
+  
+  // Serve React app for all other routes
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
+
+// =====================================================
 // START SERVER
 // =====================================================
 
 app.listen(PORT, () => {
   console.log(`🚀 E-commerce Portal API running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🎯 Dashboard: http://localhost:${PORT}/sales`);
   console.log(`🍁 Best Buy Canada test: http://localhost:${PORT}/api/bestbuy/test`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`PORT=${PORT}`);
