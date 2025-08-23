@@ -850,7 +850,7 @@ const OrderManager = require('./services/orderManager');
 const orderManagementService = require('./services/orderManagementService');
 const salesProcessingService = require('./services/salesProcessingService');
 const SalesReportingService = require('./services/salesReportingService');
-const dataValidationService = require('./services/dataValidationService');
+const DataValidationService = require('./services/dataValidationService');
 const dashboardUIService = require('./services/dashboardUIService');
 const realTimeSalesService = require('./services/realTimeSalesService');
 const kpiCalculationService = require('./services/kpiCalculationService');
@@ -875,7 +875,7 @@ let orderLifecycleManager, fulfillmentService, customerNotificationService, orde
 let reportGeneratorService;
 
 // Initialize M12 services
-let dataValidationService, validationRuleEngine, dataQualityMonitor;
+let validationRuleEngine, dataQualityMonitor;
 
 // Initialize services on startup (with error handling)
 (async () => {
@@ -1588,7 +1588,7 @@ app.post('/api/reports/export', authenticateToken, async (req, res) => {
 app.post('/api/validation/product', authenticateToken, async (req, res) => {
   try {
     const { productData, channelId } = req.body;
-    const result = await dataValidationService.validateProduct(productData, channelId);
+    const result = await DataValidationService.validateProduct(productData, channelId);
     res.json(result);
   } catch (error) {
     console.error('Product validation error:', error);
@@ -1603,7 +1603,7 @@ app.post('/api/validation/product', authenticateToken, async (req, res) => {
 app.post('/api/validation/order', authenticateToken, async (req, res) => {
   try {
     const { orderData, channelId } = req.body;
-    const result = await dataValidationService.validateOrder(orderData, channelId);
+    const result = await DataValidationService.validateOrder(orderData, channelId);
     res.json(result);
   } catch (error) {
     console.error('Order validation error:', error);
@@ -1618,7 +1618,7 @@ app.post('/api/validation/order', authenticateToken, async (req, res) => {
 app.post('/api/validation/inventory', authenticateToken, async (req, res) => {
   try {
     const { inventoryData, channelId } = req.body;
-    const result = await dataValidationService.validateInventory(inventoryData, channelId);
+    const result = await DataValidationService.validateInventory(inventoryData, channelId);
     res.json(result);
   } catch (error) {
     console.error('Inventory validation error:', error);
@@ -1648,7 +1648,7 @@ app.post('/api/validation/rules/execute', authenticateToken, async (req, res) =>
 app.get('/api/validation/history', authenticateToken, async (req, res) => {
   try {
     const { limit = 50, offset = 0 } = req.query;
-    const result = await dataValidationService.getValidationHistory(parseInt(limit), parseInt(offset));
+    const result = await DataValidationService.getValidationHistory(parseInt(limit), parseInt(offset));
     res.json(result);
   } catch (error) {
     console.error('Validation history error:', error);
@@ -1663,7 +1663,7 @@ app.get('/api/validation/history', authenticateToken, async (req, res) => {
 app.get('/api/validation/quality/metrics', authenticateToken, async (req, res) => {
   try {
     const { startDate, endDate, entityType } = req.query;
-    const result = await dataValidationService.getQualityMetrics(startDate, endDate, entityType);
+    const result = await DataValidationService.getQualityMetrics(startDate, endDate, entityType);
     res.json(result);
   } catch (error) {
     console.error('Quality metrics error:', error);
