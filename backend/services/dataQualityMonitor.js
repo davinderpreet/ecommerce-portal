@@ -546,28 +546,47 @@ class DataQualityMonitor {
     const today = new Date().toISOString().split('T')[0];
 
     for (const result of assessmentResults) {
-      const query = `
-        INSERT INTO quality_trends 
-        (trend_date, entity_type, quality_score, total_records, valid_records, invalid_records)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (trend_date, entity_type) 
-        DO UPDATE SET 
-          quality_score = EXCLUDED.quality_score,
-          total_records = EXCLUDED.total_records,
-          valid_records = EXCLUDED.valid_records,
-          invalid_records = EXCLUDED.invalid_records
-      `;
+      try {
+        // First try to insert
+        const insertQuery = `
+          INSERT INTO quality_trends 
+          (trend_date, entity_type, quality_score, total_records, valid_records, invalid_records)
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `;
 
-      const totalRecords = result.details?.total_products || result.details?.total_orders || 
-                          result.details?.total_inventory || result.details?.total_syncs || 
-                          result.details?.total_validations || 0;
-      
-      const validRecords = Math.round((result.score / 100) * totalRecords);
-      const invalidRecords = totalRecords - validRecords;
+        const totalRecords = result.details?.total_products || result.details?.total_orders || 
+                            result.details?.total_inventory || result.details?.total_syncs || 
+                            result.details?.total_validations || 0;
+        
+        const validRecords = Math.round((result.score / 100) * totalRecords);
+        const invalidRecords = totalRecords - validRecords;
 
-      await pool.query(query, [
-        today, result.category, result.score, totalRecords, validRecords, invalidRecords
-      ]);
+        await pool.query(insertQuery, [
+          today, result.category, result.score, totalRecords, validRecords, invalidRecords
+        ]);
+      } catch (error) {
+        if (error.code === '23505') { // Unique violation
+          // Update existing record
+          const updateQuery = `
+            UPDATE quality_trends 
+            SET quality_score = $3, total_records = $4, valid_records = $5, invalid_records = $6
+            WHERE trend_date = $1 AND entity_type = $2
+          `;
+          
+          const totalRecords = result.details?.total_products || result.details?.total_orders || 
+                              result.details?.total_inventory || result.details?.total_syncs || 
+                              result.details?.total_validations || 0;
+          
+          const validRecords = Math.round((result.score / 100) * totalRecords);
+          const invalidRecords = totalRecords - validRecords;
+
+          await pool.query(updateQuery, [
+            today, result.category, result.score, totalRecords, validRecords, invalidRecords
+          ]);
+        } else {
+          console.warn(`Failed to update quality trends for ${result.category}:`, error.message);
+        }
+      }
     }
   }
 
