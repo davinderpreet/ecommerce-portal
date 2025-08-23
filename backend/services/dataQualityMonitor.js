@@ -251,11 +251,11 @@ class DataQualityMonitor {
         COUNT(*) as total_products,
         COUNT(CASE WHEN sku IS NOT NULL AND sku != '' THEN 1 END) as has_sku,
         COUNT(CASE WHEN name IS NOT NULL AND name != '' THEN 1 END) as has_name,
-        COUNT(CASE WHEN price IS NOT NULL AND price > 0 THEN 1 END) as has_valid_price,
+        COUNT(CASE WHEN base_price IS NOT NULL AND base_price > 0 THEN 1 END) as has_valid_price,
         COUNT(CASE WHEN category IS NOT NULL AND category != '' THEN 1 END) as has_category,
         COUNT(CASE WHEN description IS NOT NULL AND LENGTH(description) >= 50 THEN 1 END) as has_description
       FROM products
-      WHERE status = 'active'
+      WHERE is_active = true
     `;
 
     const result = await pool.query(query);

@@ -124,7 +124,7 @@ class DataValidationService {
         rule_name: 'product_price_positive',
         rule_type: 'numeric_range',
         entity_type: 'product',
-        field_name: 'price',
+        field_name: 'base_price',
         validation_logic: { min: 0.01, max: 999999.99 },
         severity: 'high'
       },
@@ -198,9 +198,9 @@ class DataValidationService {
       results.push(skuResult);
 
       // Price validation
-      if (productData.price !== undefined) {
+      if (productData.base_price !== undefined) {
         const priceResult = await this.validateField(
-          productData, 'price', 'product_price_positive', batchId, productData.id
+          productData, 'base_price', 'product_price_positive', batchId, productData.id
         );
         results.push(priceResult);
       }
