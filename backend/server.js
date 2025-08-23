@@ -852,6 +852,9 @@ const CustomerNotificationService = require('./services/customerNotificationServ
 const OrderAnalyticsDashboard = require('./services/orderAnalyticsDashboard');
 const SalesReportingService = require('./services/salesReportingService');
 const ReportGeneratorService = require('./services/reportGeneratorService');
+const DataValidationService = require('./services/dataValidationService');
+const ValidationRuleEngine = require('./services/validationRuleEngine');
+const DataQualityMonitor = require('./services/dataQualityMonitor');
 
 // Initialize services
 let syncService, dataMapper, webhookHandler, salesProcessor, orderManager;
@@ -861,6 +864,9 @@ let orderLifecycleManager, fulfillmentService, customerNotificationService, orde
 
 // Initialize M11 services
 let salesReportingService, reportGeneratorService;
+
+// Initialize M12 services
+let dataValidationService, validationRuleEngine, dataQualityMonitor;
 
 // Initialize services on startup (with error handling)
 (async () => {
@@ -940,6 +946,31 @@ let salesReportingService, reportGeneratorService;
     console.log('✅ ReportGeneratorService initialized');
   } catch (error) {
     console.error('❌ ReportGeneratorService initialization failed:', error.message);
+  }
+
+  // Initialize M12 services
+  try {
+    dataValidationService = new DataValidationService();
+    await dataValidationService.initialize();
+    console.log('✅ DataValidationService initialized');
+  } catch (error) {
+    console.error('❌ DataValidationService initialization failed:', error.message);
+  }
+
+  try {
+    validationRuleEngine = new ValidationRuleEngine();
+    await validationRuleEngine.initialize();
+    console.log('✅ ValidationRuleEngine initialized');
+  } catch (error) {
+    console.error('❌ ValidationRuleEngine initialization failed:', error.message);
+  }
+
+  try {
+    dataQualityMonitor = new DataQualityMonitor();
+    await dataQualityMonitor.initialize();
+    console.log('✅ DataQualityMonitor initialized');
+  } catch (error) {
+    console.error('❌ DataQualityMonitor initialization failed:', error.message);
   }
 })();
 
@@ -1560,6 +1591,173 @@ app.post('/api/reports/export', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to export report data'
+    });
+  }
+});
+
+// =====================================================
+// M12 DATA VALIDATION API ENDPOINTS
+// =====================================================
+
+// Validate Product Data
+app.post('/api/validation/product', authenticateToken, async (req, res) => {
+  try {
+    const { productData, channelId } = req.body;
+    const result = await dataValidationService.validateProduct(productData, channelId);
+    res.json(result);
+  } catch (error) {
+    console.error('Product validation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to validate product data'
+    });
+  }
+});
+
+// Validate Order Data
+app.post('/api/validation/order', authenticateToken, async (req, res) => {
+  try {
+    const { orderData, channelId } = req.body;
+    const result = await dataValidationService.validateOrder(orderData, channelId);
+    res.json(result);
+  } catch (error) {
+    console.error('Order validation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to validate order data'
+    });
+  }
+});
+
+// Validate Inventory Data
+app.post('/api/validation/inventory', authenticateToken, async (req, res) => {
+  try {
+    const { inventoryData, channelId } = req.body;
+    const result = await dataValidationService.validateInventory(inventoryData, channelId);
+    res.json(result);
+  } catch (error) {
+    console.error('Inventory validation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to validate inventory data'
+    });
+  }
+});
+
+// Execute Validation Rules for Entity
+app.post('/api/validation/rules/execute', authenticateToken, async (req, res) => {
+  try {
+    const { entityType, entityData, channelId } = req.body;
+    const result = await validationRuleEngine.executeRulesForEntity(entityType, entityData, channelId);
+    res.json(result);
+  } catch (error) {
+    console.error('Rule execution error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to execute validation rules'
+    });
+  }
+});
+
+// Get Validation History
+app.get('/api/validation/history', authenticateToken, async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    const result = await dataValidationService.getValidationHistory(parseInt(limit), parseInt(offset));
+    res.json(result);
+  } catch (error) {
+    console.error('Validation history error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch validation history'
+    });
+  }
+});
+
+// Get Quality Metrics
+app.get('/api/validation/quality/metrics', authenticateToken, async (req, res) => {
+  try {
+    const { startDate, endDate, entityType } = req.query;
+    const result = await dataValidationService.getQualityMetrics(startDate, endDate, entityType);
+    res.json(result);
+  } catch (error) {
+    console.error('Quality metrics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch quality metrics'
+    });
+  }
+});
+
+// Get Quality Dashboard
+app.get('/api/validation/quality/dashboard', authenticateToken, async (req, res) => {
+  try {
+    const result = await dataQualityMonitor.getQualityDashboard();
+    res.json(result);
+  } catch (error) {
+    console.error('Quality dashboard error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch quality dashboard'
+    });
+  }
+});
+
+// Get Active Quality Alerts
+app.get('/api/validation/quality/alerts', authenticateToken, async (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+    const result = await dataQualityMonitor.getActiveAlerts(parseInt(limit));
+    res.json(result);
+  } catch (error) {
+    console.error('Quality alerts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch quality alerts'
+    });
+  }
+});
+
+// Get Quality Trends
+app.get('/api/validation/quality/trends', authenticateToken, async (req, res) => {
+  try {
+    const { startDate, endDate, entityType } = req.query;
+    const result = await dataQualityMonitor.getQualityTrends(startDate, endDate, entityType);
+    res.json(result);
+  } catch (error) {
+    console.error('Quality trends error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch quality trends'
+    });
+  }
+});
+
+// Get Rule Violation Alerts
+app.get('/api/validation/rules/violations', authenticateToken, async (req, res) => {
+  try {
+    const { status = 'active', limit = 50 } = req.query;
+    const result = await validationRuleEngine.getRuleViolationAlerts(status, parseInt(limit));
+    res.json(result);
+  } catch (error) {
+    console.error('Rule violations error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch rule violations'
+    });
+  }
+});
+
+// Get Rule Engine Statistics
+app.get('/api/validation/rules/stats', authenticateToken, async (req, res) => {
+  try {
+    const result = await validationRuleEngine.getExecutionStats();
+    res.json(result);
+  } catch (error) {
+    console.error('Rule stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch rule statistics'
     });
   }
 });
