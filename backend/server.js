@@ -1086,17 +1086,14 @@ app.get('/api/sync/logs', authenticateToken, async (req, res) => {
   }
 });
 
-// Webhook endpoints
-app.use('/api/webhooks', webhookHandler.getRouter());
-
-// Webhook status endpoint
+// Webhook status endpoint (commented out until initialization fixed)
 app.get('/api/webhooks/status', authenticateToken, async (req, res) => {
   try {
-    const stats = webhookHandler.getWebhookStats();
+    // const stats = webhookHandler.getWebhookStats();
     
     res.json({
       success: true,
-      webhookStats: stats,
+      message: 'Webhook functionality temporarily disabled during M9 deployment',
       endpoints: {
         shopify: {
           orders_create: '/api/webhooks/shopify/orders/create',
