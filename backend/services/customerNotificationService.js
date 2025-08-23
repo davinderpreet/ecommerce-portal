@@ -27,7 +27,7 @@ class CustomerNotificationService {
 
   setupEmailTransporter() {
     // Configure email transporter (using Gmail as example)
-    this.emailTransporter = nodemailer.createTransporter({
+    this.emailTransporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER || 'noreply@ecommerce-portal.com',
