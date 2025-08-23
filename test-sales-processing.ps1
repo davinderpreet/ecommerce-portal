@@ -2,7 +2,7 @@
 # Tests order processing, status management, and sales aggregations
 
 $baseUrl = "https://ecommerce-portal-production.up.railway.app"
-$testEmail = "test@example.com"
+$testEmail = "testuser@example.com"
 $testPassword = "password123"
 
 Write-Host "Testing Sales Processing Engine (Milestone 9)" -ForegroundColor Cyan

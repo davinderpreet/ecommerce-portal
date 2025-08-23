@@ -845,36 +845,80 @@ const WebhookHandler = require('./services/webhookHandler');
 const SalesProcessor = require('./services/salesProcessor');
 const OrderManager = require('./services/orderManager');
 
+// Import M10 services
+const OrderLifecycleManager = require('./services/orderLifecycleManager');
+const FulfillmentService = require('./services/fulfillmentService');
+const CustomerNotificationService = require('./services/customerNotificationService');
+const OrderAnalyticsDashboard = require('./services/orderAnalyticsDashboard');
+
 // Initialize services
-const syncService = new SyncService();
-const dataMapper = new DataMapper();
-const webhookHandler = new WebhookHandler(syncService, dataMapper);
-const salesProcessor = new SalesProcessor();
-const orderManager = new OrderManager();
+let syncService, dataMapper, webhookHandler, salesProcessor, orderManager;
+
+// Initialize M10 services
+let orderLifecycleManager, fulfillmentService, customerNotificationService, orderAnalyticsDashboard;
 
 // Initialize services on startup (with error handling)
-syncService.initialize().then(() => {
+try {
+  syncService = new SyncService();
+  await syncService.initialize();
   console.log('✅ Sync Service initialized');
   // Start automatic sync scheduler (every 15 minutes)
   syncService.startScheduler(15);
-}).catch(error => {
+} catch (error) {
   console.error('❌ Failed to initialize Sync Service:', error.message);
   console.log('⚠️ Sync Service will retry initialization on first API call');
-});
+}
 
 // Initialize sales processor
-salesProcessor.initialize().then(() => {
+try {
+  salesProcessor = new SalesProcessor();
+  await salesProcessor.initialize();
   console.log('✅ Sales Processor initialized');
-}).catch(error => {
+} catch (error) {
   console.error('❌ Failed to initialize Sales Processor:', error.message);
-});
+}
 
-// Initialize order manager
-orderManager.initialize().then(() => {
+// Initialize OrderManager
+try {
+  orderManager = new OrderManager();
+  await orderManager.initialize();
   console.log('✅ Order Manager initialized');
-}).catch(error => {
-  console.error('❌ Failed to initialize Order Manager:', error.message);
-});
+} catch (error) {
+  console.error('❌ OrderManager initialization failed:', error.message);
+}
+
+// Initialize M10 services
+try {
+  orderLifecycleManager = new OrderLifecycleManager();
+  await orderLifecycleManager.initialize();
+  console.log('✅ OrderLifecycleManager initialized');
+} catch (error) {
+  console.error('❌ OrderLifecycleManager initialization failed:', error.message);
+}
+
+try {
+  fulfillmentService = new FulfillmentService();
+  await fulfillmentService.initialize();
+  console.log('✅ FulfillmentService initialized');
+} catch (error) {
+  console.error('❌ FulfillmentService initialization failed:', error.message);
+}
+
+try {
+  customerNotificationService = new CustomerNotificationService();
+  await customerNotificationService.initialize();
+  console.log('✅ CustomerNotificationService initialized');
+} catch (error) {
+  console.error('❌ CustomerNotificationService initialization failed:', error.message);
+}
+
+try {
+  orderAnalyticsDashboard = new OrderAnalyticsDashboard();
+  await orderAnalyticsDashboard.initialize();
+  console.log('✅ OrderAnalyticsDashboard initialized');
+} catch (error) {
+  console.error('❌ OrderAnalyticsDashboard initialization failed:', error.message);
+}
 
 // Manual sync trigger endpoint
 app.post('/api/sync/trigger', authenticateToken, async (req, res) => {
@@ -1359,9 +1403,9 @@ app.use('*', (req, res) => {
 // =====================================================
 
 app.listen(PORT, () => {
-  console.log(`🚀 E-commerce Portal API running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`🍁 Best Buy Canada test: http://localhost:${PORT}/api/bestbuy/test`);
+  console.log(` E-commerce Portal API running on port ${PORT}`);
+  console.log(` Health check: http://localhost:${PORT}/api/health`);
+  console.log(` Best Buy Canada test: http://localhost:${PORT}/api/bestbuy/test`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Integrations available:`);
   console.log(`  - Shopify: ${!!process.env.SHOPIFY_ACCESS_TOKEN}`);
