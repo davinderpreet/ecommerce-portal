@@ -2065,11 +2065,26 @@ app.use(express.static(path.join(__dirname, '../frontend/dist')));
 app.get('*', (req, res) => {
   // Skip API routes
   if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ message: 'API endpoint not found' });
+    return res.status(404).json({ message: `Route ${req.path} not found` });
   }
   
+  // Log the request for debugging
+  console.log(`Serving React app for route: ${req.path}`);
+  
   // Serve React app for all other routes
-  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+  const indexPath = path.join(__dirname, '../frontend/dist/index.html');
+  
+  // Check if index.html exists
+  const fs = require('fs');
+  if (!fs.existsSync(indexPath)) {
+    console.error('React build not found at:', indexPath);
+    return res.status(404).json({ 
+      success: false, 
+      message: 'Frontend build not found. Please run npm run build in frontend directory.' 
+    });
+  }
+  
+  res.sendFile(indexPath);
 });
 
 // =====================================================
