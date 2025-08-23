@@ -5,6 +5,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import DashboardLayout from './components/Layout/DashboardLayout';
 import Dashboard from './pages/Dashboard';
 import RealTimeSales from './pages/RealTimeSales';
+import M15Dashboard from './pages/M15Dashboard';
 
 const theme = createTheme({
   palette: {
@@ -63,8 +64,9 @@ const App: React.FC = () => {
       <Router>
         <DashboardLayout>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/" element={<M15Dashboard />} />
+            <Route path="/dashboard" element={<M15Dashboard />} />
+            <Route path="/legacy" element={<Dashboard />} />
             <Route path="/sales" element={<RealTimeSales />} />
             <Route path="/inventory" element={<div>Inventory Page - Coming Soon</div>} />
             <Route path="/analytics" element={<div>Analytics Page - Coming Soon</div>} />
