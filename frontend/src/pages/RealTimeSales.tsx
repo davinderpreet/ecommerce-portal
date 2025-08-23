@@ -196,42 +196,38 @@ const RealTimeSales: React.FC = () => {
             totalOrders: data.data.totalOrders || 0,
             avgOrderValue: data.data.averageOrderValue || 0,
             uniqueCustomers: data.data.totalCustomers || 0,
-            totalRevenue: response.data.totalSales || 0,
-            totalOrders: response.data.totalOrders || 0,
-            avgOrderValue: response.data.averageOrderValue || 0,
-            uniqueCustomers: response.data.totalCustomers || 0,
           },
           channels: [
             {
               channel: 'Amazon',
-              revenue: response.data.totalSales * 0.4 || 0,
-              orders: Math.floor((response.data.totalOrders || 0) * 0.4),
-              avgOrderValue: response.data.averageOrderValue * 0.9 || 0,
+              revenue: data.data.totalSales * 0.4 || 0,
+              orders: Math.floor((data.data.totalOrders || 0) * 0.4),
+              avgOrderValue: data.data.averageOrderValue * 0.9 || 0,
               conversionRate: 4.2,
               customerSatisfaction: 87.5,
               color: '#FF9900'
             },
             {
               channel: 'Shopify',
-              revenue: response.data.totalSales * 0.35 || 0,
-              orders: Math.floor((response.data.totalOrders || 0) * 0.35),
-              avgOrderValue: response.data.averageOrderValue * 1.1 || 0,
+              revenue: data.data.totalSales * 0.35 || 0,
+              orders: Math.floor((data.data.totalOrders || 0) * 0.35),
+              avgOrderValue: data.data.averageOrderValue * 1.1 || 0,
               conversionRate: 3.8,
               customerSatisfaction: 92.1,
               color: '#96BF48'
             },
             {
               channel: 'BestBuy',
-              revenue: response.data.totalSales * 0.25 || 0,
-              orders: Math.floor((response.data.totalOrders || 0) * 0.25),
-              avgOrderValue: response.data.averageOrderValue * 1.3 || 0,
+              revenue: data.data.totalSales * 0.25 || 0,
+              orders: Math.floor((data.data.totalOrders || 0) * 0.25),
+              avgOrderValue: data.data.averageOrderValue * 1.3 || 0,
               conversionRate: 2.9,
               customerSatisfaction: 85.3,
               color: '#003DA5'
             }
           ],
-          hourlyTrend: generateMockHourlyTrend(response.data.totalSales || 0),
-          topProducts: response.data.topProducts || [],
+          hourlyTrend: generateMockHourlyTrend(data.data.totalSales || 0),
+          topProducts: data.data.topProducts || [],
           lastUpdated: new Date().toISOString()
         };
 
