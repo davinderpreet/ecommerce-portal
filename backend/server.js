@@ -444,7 +444,7 @@ app.get('/api/bestbuy/test', authenticateToken, async (req, res) => {
 
     // Simple test - try to make a request to shops endpoint (Mirakl API)
     try {
-      const testUrl = 'https://marketplace.bestbuy.ca/api/shops';
+      const testUrl = 'https://marketplace.bestbuy.ca/shops';
       const response = await axios.get(testUrl, {
         headers: {
           'Authorization': process.env.BESTBUY_CANADA_API_KEY,
