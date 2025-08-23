@@ -289,6 +289,356 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 // =====================================================
+// SALES PROCESSING ENGINE - MILESTONE 9
+// =====================================================
+
+// Process single order
+app.post('/api/sales/process-order', authenticateToken, async (req, res) => {
+  try {
+    const { orderData, channelName, channelId } = req.body;
+
+    if (!orderData || !channelName) {
+      return res.status(400).json({
+        success: false,
+        message: 'orderData and channelName are required'
+      });
+    }
+
+    const result = await salesProcessor.processOrder(orderData, channelName, channelId);
+
+    res.json({
+      success: result.success,
+      message: result.success ? 'Order processed successfully' : 'Order processing failed',
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Process order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process order',
+      error: error.message
+    });
+  }
+});
+
+// Queue order for processing
+app.post('/api/sales/queue-order', authenticateToken, async (req, res) => {
+  try {
+    const { orderData, channelName, channelId, priority = 5 } = req.body;
+
+    if (!orderData || !channelName) {
+      return res.status(400).json({
+        success: false,
+        message: 'orderData and channelName are required'
+      });
+    }
+
+    const queueItem = await salesProcessor.queueOrder(orderData, channelName, channelId, priority);
+
+    res.json({
+      success: true,
+      message: 'Order queued for processing',
+      queueItem
+    });
+
+  } catch (error) {
+    console.error('Queue order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to queue order',
+      error: error.message
+    });
+  }
+});
+
+// Process sales queue
+app.post('/api/sales/process-queue', authenticateToken, async (req, res) => {
+  try {
+    const { limit = 10 } = req.body;
+    
+    await salesProcessor.processQueue(limit);
+
+    res.json({
+      success: true,
+      message: `Processing up to ${limit} orders from queue`
+    });
+
+  } catch (error) {
+    console.error('Process queue error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process queue',
+      error: error.message
+    });
+  }
+});
+
+// Get sales processing statistics
+app.get('/api/sales/stats', authenticateToken, async (req, res) => {
+  try {
+    const stats = salesProcessor.getProcessingStats();
+
+    res.json({
+      success: true,
+      stats
+    });
+
+  } catch (error) {
+    console.error('Sales stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get sales statistics',
+      error: error.message
+    });
+  }
+});
+
+// Get sales aggregations
+app.get('/api/sales/aggregations', authenticateToken, async (req, res) => {
+  try {
+    const { startDate, endDate, channelName } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'startDate and endDate are required'
+      });
+    }
+
+    const aggregations = await salesProcessor.getSalesAggregations(startDate, endDate, channelName);
+
+    res.json({
+      success: true,
+      data: aggregations
+    });
+
+  } catch (error) {
+    console.error('Sales aggregations error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get sales aggregations',
+      error: error.message
+    });
+  }
+});
+
+// =====================================================
+// ORDER MANAGEMENT SYSTEM - MILESTONE 9
+// =====================================================
+
+// Update order status
+app.put('/api/orders/:orderId/status', authenticateToken, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status, fulfillmentStatus, reason, changedBy = 'api' } = req.body;
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'status is required'
+      });
+    }
+
+    const result = await orderManager.updateOrderStatus(
+      orderId, 
+      status, 
+      fulfillmentStatus, 
+      reason, 
+      changedBy
+    );
+
+    res.json({
+      success: result.success,
+      message: result.success ? 'Order status updated successfully' : 'Failed to update order status',
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Update order status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update order status',
+      error: error.message
+    });
+  }
+});
+
+// Get order status history
+app.get('/api/orders/:orderId/history', authenticateToken, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    const history = await orderManager.getOrderStatusHistory(orderId);
+
+    res.json({
+      success: true,
+      data: history
+    });
+
+  } catch (error) {
+    console.error('Get order history error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get order history',
+      error: error.message
+    });
+  }
+});
+
+// Get orders by status
+app.get('/api/orders/status/:status', authenticateToken, async (req, res) => {
+  try {
+    const { status } = req.params;
+    const { channelName, page = 1, limit = 50 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const orders = await orderManager.getOrdersByStatus(status, channelName, limit, offset);
+
+    res.json({
+      success: true,
+      data: orders,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Get orders by status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get orders by status',
+      error: error.message
+    });
+  }
+});
+
+// Bulk update order statuses
+app.put('/api/orders/bulk-status', authenticateToken, async (req, res) => {
+  try {
+    const { orderIds, status, reason, changedBy = 'bulk_api' } = req.body;
+
+    if (!orderIds || !Array.isArray(orderIds) || !status) {
+      return res.status(400).json({
+        success: false,
+        message: 'orderIds (array) and status are required'
+      });
+    }
+
+    const result = await orderManager.bulkUpdateStatus(orderIds, status, reason, changedBy);
+
+    res.json({
+      success: true,
+      message: `Bulk update completed: ${result.successful}/${result.total} orders updated`,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Bulk update status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to bulk update order statuses',
+      error: error.message
+    });
+  }
+});
+
+// Get order analytics
+app.get('/api/orders/analytics', authenticateToken, async (req, res) => {
+  try {
+    const { startDate, endDate, channelName } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'startDate and endDate are required'
+      });
+    }
+
+    const analytics = await orderManager.getOrderAnalytics(startDate, endDate, channelName);
+
+    res.json({
+      success: true,
+      data: analytics
+    });
+
+  } catch (error) {
+    console.error('Order analytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get order analytics',
+      error: error.message
+    });
+  }
+});
+
+// Create workflow rule
+app.post('/api/orders/workflow-rules', authenticateToken, async (req, res) => {
+  try {
+    const { channelName, fromStatus, toStatus, conditions, actions } = req.body;
+
+    if (!channelName || !fromStatus || !toStatus) {
+      return res.status(400).json({
+        success: false,
+        message: 'channelName, fromStatus, and toStatus are required'
+      });
+    }
+
+    const rule = await orderManager.createWorkflowRule(
+      channelName, 
+      fromStatus, 
+      toStatus, 
+      conditions, 
+      actions
+    );
+
+    res.json({
+      success: true,
+      message: 'Workflow rule created successfully',
+      data: rule
+    });
+
+  } catch (error) {
+    console.error('Create workflow rule error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create workflow rule',
+      error: error.message
+    });
+  }
+});
+
+// Process notifications queue
+app.post('/api/orders/process-notifications', authenticateToken, async (req, res) => {
+  try {
+    const { limit = 10 } = req.body;
+    
+    await orderManager.processNotifications(limit);
+
+    res.json({
+      success: true,
+      message: `Processing up to ${limit} notifications`
+    });
+
+  } catch (error) {
+    console.error('Process notifications error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process notifications',
+      error: error.message
+    });
+  }
+});
+
+// =====================================================
+// WEBHOOK ENDPOINTS - REAL-TIME UPDATES
+// =====================================================
+
+// Webhook routes
+app.use('/api/webhooks', webhookHandler.getRoutes());
+
+// =====================================================
 // PRODUCTS MODULE
 // =====================================================
 
@@ -491,17 +841,21 @@ app.get('/api/bestbuy/test', authenticateToken, async (req, res) => {
 // =====================================================
 // DATA SYNC SERVICES - MILESTONE 8
 // =====================================================
-
+// Import services
 const SyncService = require('./services/syncService');
 const DataMapper = require('./services/dataMapper');
 const WebhookHandler = require('./services/webhookHandler');
+const SalesProcessor = require('./services/salesProcessor');
+const OrderManager = require('./services/orderManager');
 
-// Initialize sync service
+// Initialize services
 const syncService = new SyncService();
 const dataMapper = new DataMapper();
 const webhookHandler = new WebhookHandler(syncService, dataMapper);
+const salesProcessor = new SalesProcessor();
+const orderManager = new OrderManager();
 
-// Initialize sync service on startup (with error handling)
+// Initialize services on startup (with error handling)
 syncService.initialize().then(() => {
   console.log('✅ Sync Service initialized');
   // Start automatic sync scheduler (every 15 minutes)
@@ -509,6 +863,20 @@ syncService.initialize().then(() => {
 }).catch(error => {
   console.error('❌ Failed to initialize Sync Service:', error.message);
   console.log('⚠️ Sync Service will retry initialization on first API call');
+});
+
+// Initialize sales processor
+salesProcessor.initialize().then(() => {
+  console.log('✅ Sales Processor initialized');
+}).catch(error => {
+  console.error('❌ Failed to initialize Sales Processor:', error.message);
+});
+
+// Initialize order manager
+orderManager.initialize().then(() => {
+  console.log('✅ Order Manager initialized');
+}).catch(error => {
+  console.error('❌ Failed to initialize Order Manager:', error.message);
 });
 
 // Manual sync trigger endpoint
