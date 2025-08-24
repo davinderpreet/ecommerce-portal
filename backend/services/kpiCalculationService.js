@@ -220,8 +220,8 @@ class KPICalculationService {
       // Current period revenue
       let currentQuery = `
         SELECT COALESCE(SUM(total_amount), 0) as revenue
-        FROM orders 
-        WHERE created_at >= $1 AND created_at <= $2
+        FROM sales_orders 
+        WHERE order_date >= $1 AND order_date <= $2
         AND status IN ('completed', 'processing', 'shipped')
       `;
       let currentParams = [startDate, endDate];
@@ -241,8 +241,8 @@ class KPICalculationService {
 
       let previousQuery = `
         SELECT COALESCE(SUM(total_amount), 0) as revenue
-        FROM orders 
-        WHERE created_at >= $1 AND created_at <= $2
+        FROM sales_orders 
+        WHERE order_date >= $1 AND order_date <= $2
         AND status IN ('completed', 'processing', 'shipped')
       `;
       let previousParams = [previousStartDate, previousEndDate];
@@ -283,8 +283,8 @@ class KPICalculationService {
       // Get orders count
       let ordersQuery = `
         SELECT COUNT(*) as orders
-        FROM orders 
-        WHERE created_at >= $1 AND created_at <= $2
+        FROM sales_orders 
+        WHERE order_date >= $1 AND order_date <= $2
         AND status IN ('completed', 'processing', 'shipped')
       `;
       let ordersParams = [startDate, endDate];
@@ -324,8 +324,8 @@ class KPICalculationService {
           COALESCE(AVG(total_amount), 0) as avg_order_value,
           COUNT(*) as order_count,
           COALESCE(SUM(total_amount), 0) as total_revenue
-        FROM orders 
-        WHERE created_at >= $1 AND created_at <= $2
+        FROM sales_orders 
+        WHERE order_date >= $1 AND order_date <= $2
         AND status IN ('completed', 'processing', 'shipped')
       `;
       let queryParams = [startDate, endDate];
@@ -363,8 +363,8 @@ class KPICalculationService {
         SELECT 
           COUNT(*) as total_orders,
           COUNT(DISTINCT customer_email) as unique_customers
-        FROM orders 
-        WHERE created_at >= NOW() - INTERVAL '1 year'
+        FROM sales_orders 
+        WHERE order_date >= NOW() - INTERVAL '1 year'
         AND status IN ('completed', 'processing', 'shipped')
       `;
       
@@ -405,8 +405,8 @@ class KPICalculationService {
         SELECT 
           COUNT(*) as total_orders,
           COUNT(CASE WHEN status IN ('shipped', 'delivered') THEN 1 END) as fulfilled_orders
-        FROM orders 
-        WHERE created_at >= $1 AND created_at <= $2
+        FROM sales_orders 
+        WHERE order_date >= $1 AND order_date <= $2
       `;
       
       const result = await client.query(query, [startDate, endDate]);
@@ -462,8 +462,8 @@ class KPICalculationService {
         SELECT 
           COUNT(*) as total_orders,
           COUNT(CASE WHEN status = 'returned' THEN 1 END) as returned_orders
-        FROM orders 
-        WHERE created_at >= $1 AND created_at <= $2
+        FROM sales_orders 
+        WHERE order_date >= $1 AND order_date <= $2
       `;
       
       const result = await client.query(query, [startDate, endDate]);
