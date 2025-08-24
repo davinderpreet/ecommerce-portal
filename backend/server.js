@@ -176,7 +176,7 @@ app.post('/api/auth/register', async (req, res) => {
 // Create admin user (for setup)
 app.post('/api/auth/create-admin', async (req, res) => {
   try {
-    const bcrypt = require('bcrypt');
+    const bcrypt = require('bcryptjs');
     const email = 'admin@ecommerce.com';
     const password = 'admin123';
     const hashedPassword = await bcrypt.hash(password, 10);
