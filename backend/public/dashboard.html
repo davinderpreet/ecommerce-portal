@@ -285,8 +285,13 @@
                 let salesData = null;
                 if (salesResponse.ok) {
                     const data = await salesResponse.json();
-                    if (data.success) {
-                        salesData = data.data;
+                    if (data.success && data.summary) {
+                        salesData = {
+                            total_sales: data.summary.total_revenue,
+                            total_orders: data.summary.total_orders,
+                            avg_order_value: data.summary.avg_order_value,
+                            unique_customers: data.summary.unique_customers
+                        };
                     }
                 }
 

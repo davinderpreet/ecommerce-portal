@@ -2,7 +2,7 @@ const { Pool } = require('pg');
 
 // Initialize PostgreSQL connection
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
