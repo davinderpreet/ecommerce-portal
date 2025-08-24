@@ -910,6 +910,10 @@ const orderManagementService = require('./services/orderManagementService');
 const salesProcessingService = require('./services/salesProcessingService');
 const SalesReportingService = require('./services/salesReportingService');
 const DataValidationService = require('./services/dataValidationService');
+
+// Initialize service instances
+const salesReportingService = new SalesReportingService();
+const dataValidationService = new DataValidationService();
 const dashboardUIService = require('./services/dashboardUIService');
 const realTimeSalesService = require('./services/realTimeSalesService');
 const kpiCalculationService = require('./services/kpiCalculationService');
@@ -1493,7 +1497,7 @@ app.get('/api/sales/analytics', async (req, res) => {
 app.get('/api/reports/sales/summary', authenticateToken, async (req, res) => {
   try {
     const { startDate, endDate, channel } = req.query;
-    const result = await SalesReportingService.getSalesSummary(startDate, endDate, channel);
+    const result = await salesReportingService.getSalesSummary(startDate, endDate, channel);
     res.json(result);
   } catch (error) {
     console.error('Sales summary error:', error);
@@ -1508,7 +1512,7 @@ app.get('/api/reports/sales/summary', authenticateToken, async (req, res) => {
 app.get('/api/reports/sales/channels', authenticateToken, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    const result = await SalesReportingService.getChannelPerformance(startDate, endDate);
+    const result = await salesReportingService.getChannelPerformance(startDate, endDate);
     res.json(result);
   } catch (error) {
     console.error('Channel performance error:', error);
@@ -2162,6 +2166,15 @@ async function startServer() {
     const dbConnected = await testDatabaseConnection();
     if (!dbConnected) {
       console.warn('⚠️ Starting server without database connection');
+    }
+
+    // Initialize services
+    try {
+      await salesReportingService.initialize();
+      await dataValidationService.initialize();
+      console.log('✅ All services initialized successfully');
+    } catch (error) {
+      console.error('⚠️ Service initialization error:', error.message);
     }
 
     app.listen(PORT, '0.0.0.0', () => {
