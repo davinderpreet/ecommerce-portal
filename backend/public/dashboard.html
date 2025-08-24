@@ -224,6 +224,23 @@
         const API_BASE = 'https://ecommerce-portal-production.up.railway.app';
         let authToken = null;
 
+        // Create admin user if needed
+        async function createAdminUser() {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/create-admin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Admin user setup:', data.message);
+                }
+            } catch (error) {
+                console.warn('Admin user setup failed:', error);
+            }
+        }
+
         // Authentication
         async function getAuthToken() {
             if (authToken) return authToken;
@@ -252,6 +269,9 @@
         // Load dashboard data
         async function loadDashboardData() {
             try {
+                // First create admin user if needed
+                await createAdminUser();
+                
                 const token = await getAuthToken();
                 if (!token) {
                     throw new Error('Authentication failed');

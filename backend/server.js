@@ -173,6 +173,41 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
+// Create admin user (for setup)
+app.post('/api/auth/create-admin', async (req, res) => {
+  try {
+    const bcrypt = require('bcrypt');
+    const email = 'admin@ecommerce.com';
+    const password = 'admin123';
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Check if admin already exists
+    const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existingUser.rows.length > 0) {
+      return res.json({ success: true, message: 'Admin user already exists' });
+    }
+    
+    // Create admin user
+    const result = await pool.query(
+      `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, created_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id`,
+      [email, hashedPassword, 'Admin', 'User', 'admin', true]
+    );
+    
+    res.json({ 
+      success: true, 
+      message: 'Admin user created successfully',
+      userId: result.rows[0].id 
+    });
+  } catch (error) {
+    console.error('Create admin error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to create admin user: ' + error.message 
+    });
+  }
+});
+
 // Login user
 app.post('/api/auth/login', async (req, res) => {
   try {
