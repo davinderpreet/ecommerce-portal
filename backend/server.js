@@ -28,8 +28,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files from React build
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+// Remove duplicate - will be added later in proper order
 
 // Authentication middleware
 function authenticateToken(req, res, next) {
@@ -2044,17 +2043,6 @@ app.post('/api/sales/realtime/simulate-order', authenticateToken, async (req, re
 });
 
 // =====================================================
-// CATCH ALL ROUTES
-// =====================================================
-
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `Route ${req.originalUrl} not found`
-  });
-});
-
-// =====================================================
 // SERVE REACT FRONTEND
 // =====================================================
 
@@ -2108,33 +2096,12 @@ app.get('/dashboard', (req, res) => {
   res.sendFile(dashboardPath);
 });
 
-// Serve React frontend build files
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
-// Handle React Router - serve index.html for all non-API routes
-app.get('*', (req, res) => {
-  // Skip API routes
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ message: `Route ${req.path} not found` });
-  }
-  
-  // Log the request for debugging
-  console.log(`Serving React app for route: ${req.path}`);
-  
-  // Serve React app for all other routes
-  const indexPath = path.join(__dirname, '../frontend/dist/index.html');
-  
-  // Check if index.html exists
-  const fs = require('fs');
-  if (!fs.existsSync(indexPath)) {
-    console.error('React build not found at:', indexPath);
-    return res.status(404).json({ 
-      success: false, 
-      message: 'Frontend build not found. Please run npm run build in frontend directory.' 
-    });
-  }
-  
-  res.sendFile(indexPath);
+// FINAL 404 - must be the last handler
+app.use((req, res) => {
+  res.status(404).json({ 
+    success: false, 
+    message: `Route ${req.originalUrl} not found` 
+  });
 });
 
 // =====================================================
