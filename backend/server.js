@@ -2063,11 +2063,49 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Serve M15 Dashboard at root and /dashboard
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/dashboard.html'));
+  const dashboardPath = path.join(__dirname, 'public/dashboard.html');
+  console.log('Serving dashboard at root, path:', dashboardPath);
+  
+  const fs = require('fs');
+  if (!fs.existsSync(dashboardPath)) {
+    console.error('Dashboard file not found at:', dashboardPath);
+    const publicDir = path.join(__dirname, 'public');
+    let dirContents = 'Directory does not exist';
+    try {
+      if (fs.existsSync(publicDir)) {
+        dirContents = fs.readdirSync(publicDir).join('\n');
+      }
+    } catch (e) {
+      dirContents = 'Error reading directory: ' + e.message;
+    }
+    
+    return res.status(404).send(`
+      <h1>Dashboard Not Found</h1>
+      <p>Dashboard file missing at: ${dashboardPath}</p>
+      <p>Public directory (${publicDir}) contents:</p>
+      <pre>${dirContents}</pre>
+    `);
+  }
+  
+  res.sendFile(dashboardPath);
 });
 
 app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/dashboard.html'));
+  const dashboardPath = path.join(__dirname, 'public/dashboard.html');
+  console.log('Serving dashboard at /dashboard, path:', dashboardPath);
+  
+  const fs = require('fs');
+  if (!fs.existsSync(dashboardPath)) {
+    console.error('Dashboard file not found at:', dashboardPath);
+    return res.status(404).send(`
+      <h1>Dashboard Not Found</h1>
+      <p>Dashboard file missing at: ${dashboardPath}</p>
+      <p>Directory contents:</p>
+      <pre>${fs.readdirSync(path.join(__dirname, 'public')).join('\n')}</pre>
+    `);
+  }
+  
+  res.sendFile(dashboardPath);
 });
 
 // Serve React frontend build files
